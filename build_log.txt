@@ -1,0 +1,60 @@
+??Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+??Compiled successfully in 3.4s
+  Running TypeScript ...
+  Collecting page data using 23 workers ...
+  Generating static pages using 23 workers (0/36) ...
+  Generating static pages using 23 workers (9/36) 
+??metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+??metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+  Generating static pages using 23 workers (18/36) 
+  Generating static pages using 23 workers (27/36) 
+??Generating static pages using 23 workers (36/36) in 499.9ms
+  Finalizing page optimization ...
+
+Route (app)
+??? /
+????/_not-found
+??? /admin
+??? /admin/articles
+??? /admin/articles/[id]/edit
+??? /admin/articles/new
+??? /admin/comments
+??? /admin/profile
+??? /admin/sources
+??? /api/ai/generate-image
+??? /api/ai/summary
+??? /api/articles
+??? /api/articles/[id]
+??? /api/articles/bulk
+??? /api/auto-tag
+??? /api/comments
+??? /api/crawl
+??? /api/link-preview
+??? /api/payments/confirm
+??? /api/profile/bank
+??? /api/profile/stats
+??? /api/profile/verify
+??? /api/regenerate-summaries
+??? /api/retag
+??? /api/search
+??? /api/seed
+??? /api/seed-community-tags
+??? /api/seed-images
+??? /api/seed-sources
+??? /api/sources
+??? /api/tags/random
+??? /article/[id]
+????/article/new
+??? /auth/callback
+????/login
+????/profile
+????/search
+??? /tag/[slug]
+
+
+?? (Static)   prerendered as static content
+?  (Dynamic)  server-rendered on demand
+

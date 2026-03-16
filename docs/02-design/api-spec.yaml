@@ -1,0 +1,84 @@
+openapi: 3.0.0
+info:
+  title: KoreaStartup.kr Internal & Webhook API
+  version: 1.0.0
+
+paths:
+  /api/v1/news/submit:
+    post:
+      summary: Submit crawled news data
+      description: Secure endpoint used by Agent 2 (Data Pipeline) to push news. Requires Basic Auth and IP whitelist check.
+      security:
+        - basicAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - source_url
+                - source_name
+                - title
+                - content_raw
+              properties:
+                source_url:
+                  type: string
+                source_name:
+                  type: string
+                  enum: [VentureSquare, K-Startup, G2B, NTS, MSS]
+                title:
+                  type: string
+                content_raw:
+                  type: string
+                og_image_url:
+                  type: string
+                published_at:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: News successfully ingested
+        '401':
+          description: Unauthorized (Invalid credentials or IP)
+        '409':
+          description: Conflict (Duplicate source_url)
+
+  /api/v1/payments/webhook:
+    post:
+      summary: Toss Payments Webhook
+      description: Receives payment status updates directly from Toss Payments servers. Must verify TOSS_WEBHOOK_SECRET.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - eventType
+                - data
+              properties:
+                eventType:
+                  type: string
+                  enum: [PAYMENT_STATUS_CHANGED]
+                data:
+                  type: object
+                  properties:
+                    orderId:
+                      type: string
+                    paymentKey:
+                      type: string
+                    status:
+                      type: string
+                      enum: [DONE, CANCELED]
+      responses:
+        '200':
+          description: Webhook processed successfully
+        '400':
+          description: Invalid payload or signature
+
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic

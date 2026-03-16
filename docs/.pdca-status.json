@@ -1,0 +1,12 @@
+{
+  "project.level": "Dynamic",
+  "phase": "plan",
+  "current_sprint": "Setup Pipeline",
+  "pdca": "ACT",
+  "features": [
+    "authentication",
+    "payment",
+    "crawling_pipeline"
+  ],
+  "last_updated": "2026-03-15T14:40:00Z"
+}
