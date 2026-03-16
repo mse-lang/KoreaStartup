@@ -91,21 +91,59 @@ function cleanContentForMarkdown(raw: string): string {
     trimmed = trimmed.replace(/.*기고문 형태로 공유하고자 하는 분이 있다면.*/g, '');
     trimmed = trimmed.trim();
 
-    if (!trimmed) continue;
+    if (!trimmed) {
+      // Preserve empty lines as paragraph breaks
+      if (cleaned.length > 0 && cleaned[cleaned.length - 1] !== '') {
+        cleaned.push('');
+      }
+      continue;
+    }
     
     // Skip purely English translated blocks for Korean startup news
     if (isPurelyEnglish(trimmed)) continue;
     
-    // Add double newlines for proper markdown paragraph breaks if not headers/lists
-    if (trimmed !== '' && !trimmed.match(/^#{1,6}\s/) && !trimmed.match(/^[\*\-]\s/)) {
-        cleaned.push(trimmed);
-        cleaned.push(''); // Force line break
-    } else {
-        cleaned.push(trimmed);
+    // If a line is very long (>200 chars) and has no line breaks,
+    // try to split it into paragraphs at Korean sentence endings
+    if (trimmed.length > 200 && !trimmed.match(/^#{1,6}\s/) && !trimmed.match(/^[\*\-]\s/)) {
+      // Split at sentence endings followed by a space and a new sentence
+      // Korean sentences typically end with 다. 요. 음. etc.
+      const sentences = trimmed.split(/(?<=[다요음임됨함했됐겠움짐났겼있없했]\.)\s+/);
+      if (sentences.length > 1) {
+        // Group every 2-3 sentences into a paragraph
+        for (let i = 0; i < sentences.length; i++) {
+          const sentence = sentences[i].trim();
+          if (!sentence) continue;
+          cleaned.push(sentence);
+          // Add paragraph break after every 2-3 sentences
+          if ((i + 1) % 3 === 0 || i === sentences.length - 1) {
+            cleaned.push('');
+          }
+        }
+        continue;
+      }
+    }
+    
+    cleaned.push(trimmed);
+    // Force paragraph break after non-header/list lines
+    if (!trimmed.match(/^#{1,6}\s/) && !trimmed.match(/^[\*\-]\s/)) {
+      cleaned.push('');
     }
   }
   
-  return cleaned.join('\n');
+  // Clean up excessive empty lines (max 2 consecutive)
+  const result: string[] = [];
+  let emptyCount = 0;
+  for (const line of cleaned) {
+    if (line === '') {
+      emptyCount++;
+      if (emptyCount <= 1) result.push(line);
+    } else {
+      emptyCount = 0;
+      result.push(line);
+    }
+  }
+  
+  return result.join('\n');
 }
 
 export default async function ArticlePage({ params }: { params: Promise<{ id: string }> }) {
@@ -257,6 +295,11 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
           <span className="px-3 py-1 bg-brand-primary/20 text-brand-primary rounded-full text-xs font-semibold">
             {article.source_name}
           </span>
+          {article.author_name && (
+            <span className="text-sm text-slate-300 font-medium">
+              ✍️ {article.author_name}
+            </span>
+          )}
           {article.published_at && (
             <span className="text-sm text-slate-400">
               {new Date(article.published_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}

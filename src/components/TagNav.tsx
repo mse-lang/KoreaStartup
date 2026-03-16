@@ -57,6 +57,18 @@ export default async function TagNav({ activeSlug }: TagNavProps) {
         🔍 검색
       </Link>
 
+      {/* Premium tag — always pinned */}
+      <Link
+        href="/tag/premium"
+        className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+          activeSlug === 'premium'
+            ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-lg shadow-amber-500/30'
+            : 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-400 hover:from-amber-500/30 hover:to-yellow-500/30 border border-amber-500/30'
+        }`}
+      >
+        💎 프리미엄
+      </Link>
+
       {/* Community tags — always pinned with special styling */}
       {communityTags.map((t) => (
         <Link

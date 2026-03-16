@@ -5,7 +5,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 
 const parser = new Parser({
   customFields: {
-    item: [['media:content', 'media'], ['content:encoded', 'contentEncoded']],
+    item: [['media:content', 'media'], ['content:encoded', 'contentEncoded'], ['dc:creator', 'creator']],
   },
 })
 
@@ -343,6 +343,7 @@ export async function GET(request: Request) {
         const summary = await generateSummaryWithAI(title, contentRaw)
         const pubDate = item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString()
         const slug = generateSlug(title)
+        const authorName = (item.creator || (item as any).author || '').trim() || null
 
         // Insert article
         const { data: inserted, error: insertError } = await supabase
@@ -358,6 +359,7 @@ export async function GET(request: Request) {
             category: category.name,
             published_at: pubDate,
             author_id: user?.id ?? null,
+            author_name: authorName,
           })
           .select('id')
           .single()
