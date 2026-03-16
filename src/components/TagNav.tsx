@@ -38,7 +38,7 @@ export default async function TagNav({ activeSlug }: TagNavProps) {
   const regularTags = shuffle(allTags.filter(t => !COMMUNITY_SLUGS.includes(t.slug)));
 
   return (
-    <nav className="flex gap-1.5 flex-wrap items-center -mt-2">
+    <nav className="tag-nav-scroll flex gap-1.5 flex-wrap items-center -mt-2">
       {/* Home link */}
       <Link
         href="/"

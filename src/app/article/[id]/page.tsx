@@ -10,6 +10,39 @@ import TagNav from '@/components/TagNav';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import TossPaymentWidget from '@/components/TossPaymentWidget';
+import ShareButtons from '@/components/ShareButtons';
+import BookmarkButton from '@/components/BookmarkButton';
+import ViewTracker from '@/components/ViewTracker';
+import ArticleQnA from '@/components/ArticleQnA';
+import type { Metadata } from 'next';
+
+// SEO: Dynamic metadata for each article
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: article } = await supabase.from('articles').select('title, summary_5lines, og_image_url, source_name').eq('id', id).single();
+
+  if (!article) return { title: '기사를 찾을 수 없습니다' };
+
+  const description = article.summary_5lines?.split('\n')[0]?.replace(/^\d+\.\s*/, '') || `${article.source_name} 기사`;
+
+  return {
+    title: article.title,
+    description,
+    openGraph: {
+      title: article.title,
+      description,
+      ...(article.og_image_url ? { images: [{ url: article.og_image_url, width: 1200, height: 630 }] } : {}),
+      type: 'article',
+      locale: 'ko_KR',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: article.title,
+      description,
+    },
+  };
+}
 
 // Decode HTML entities
 function decodeEntities(text: string): string {
@@ -126,6 +159,9 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
 
   const fullMarkdownContent = cleanContentForMarkdown(article.content_raw || '');
   
+  // Reading time estimate (avg 400 chars/min for Korean)
+  const readingTime = Math.max(1, Math.ceil((article.content_raw?.length || 0) / 400));
+  
   // Decide how much to show based on source & premium status
   const isOriginalPremium = article.category === 'user-generated' || article.is_premium;
   const isPaywalled = isOriginalPremium && !isPremium;
@@ -135,34 +171,60 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
   let showReadMoreOutlink = false;
 
   if (isOriginalPremium) {
-    // Premium article logic (blur the rest)
     const lines = fullMarkdownContent.split('\n');
-    const previewCutoff = Math.max(8, Math.floor(lines.length * 0.3)); // Show first ~30%
+    const previewCutoff = Math.max(8, Math.floor(lines.length * 0.3));
     previewContent = isPaywalled ? lines.slice(0, previewCutoff).join('\n') : fullMarkdownContent;
     hiddenContent = isPaywalled ? lines.slice(previewCutoff).join('\n') : '';
   } else {
-    // External RSS Article Logic: Truncate by sentences
-    // Split by sentence endings (., !, ?) followed by space or newline
     const sentences = fullMarkdownContent.match(/[^.!?]+[.!?]+(\s+|$)/g) || [fullMarkdownContent];
-    
-    // Determine max sentences
-    let maxSentences = article.source_name === '벤처스퀘어' ? 15 : Math.floor(Math.random() * 3) + 3; // 3~5 sentences
-    
+    let maxSentences = article.source_name === '벤처스퀘어' ? 15 : Math.floor(Math.random() * 3) + 3;
     if (sentences.length > maxSentences) {
       previewContent = sentences.slice(0, maxSentences).join('').trim();
       showReadMoreOutlink = true;
     }
   }
 
-  // Generate unique order ID for checkout
   const orderId = `premium_${user?.id?.substring(0, 8) ?? 'anon'}_${Date.now()}`;
 
-  // Fetch tag IDs for this article (for cross-displaying tag comments)
+  // Fetch tag IDs for cross-commenting and related articles
   const { data: articleTagLinks } = await supabase
     .from('article_tags')
     .select('tag_id')
     .eq('article_id', article.id);
   const articleTagIds = articleTagLinks?.map(t => t.tag_id) ?? [];
+
+  // Check if user bookmarked this article
+  let isBookmarked = false;
+  if (user) {
+    const { data: bm } = await supabase
+      .from('bookmarks')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('article_id', article.id)
+      .maybeSingle();
+    isBookmarked = !!bm;
+  }
+
+  // Fetch related articles by shared tags
+  let relatedArticles: any[] = [];
+  if (articleTagIds.length > 0) {
+    const { data: relatedLinks } = await supabase
+      .from('article_tags')
+      .select('article_id, articles(id, title, source_name, og_image_url, created_at)')
+      .in('tag_id', articleTagIds)
+      .neq('article_id', article.id)
+      .limit(12);
+    // Dedupe and take top 4
+    const seen = new Set<string>();
+    for (const rl of relatedLinks || []) {
+      const a = Array.isArray(rl.articles) ? rl.articles[0] : rl.articles;
+      if (a && !seen.has(a.id)) {
+        seen.add(a.id);
+        relatedArticles.push(a);
+        if (relatedArticles.length >= 4) break;
+      }
+    }
+  }
 
   return (
     <div className="min-h-screen px-4 sm:px-6 lg:px-8 py-6 max-w-4xl mx-auto flex flex-col gap-6">
@@ -224,6 +286,21 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
           );
         })()}
       </header>
+
+      {/* Social Share + Bookmark + Reading Time */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <ShareButtons title={article.title} />
+          {user && <BookmarkButton articleId={article.id} initialBookmarked={isBookmarked} />}
+        </div>
+        <div className="flex items-center gap-3 text-xs text-slate-500">
+          <span>📖 약 {readingTime}분 읽기</span>
+          {article.view_count > 0 && <span>👁️ {article.view_count.toLocaleString()}</span>}
+        </div>
+      </div>
+
+      {/* View Count Tracker (invisible) */}
+      <ViewTracker articleId={article.id} />
 
       {/* AI 5-Line Summary */}
       {article.summary_5lines && (
@@ -299,20 +376,55 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
 
       <hr className="border-white/10 my-2" />
 
+      {/* AI 관련 기사 추천 */}
+      {relatedArticles.length > 0 && (
+        <section className="mt-2">
+          <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+            <span className="text-brand-primary">🤖</span> AI 추천 관련 기사
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {relatedArticles.map((ra: any) => (
+              <Link
+                key={ra.id}
+                href={`/article/${ra.id}`}
+                className="bento-card p-0 flex overflow-hidden hover:-translate-y-1 hover:border-brand-primary/30 transition-all group block"
+              >
+                {ra.og_image_url ? (
+                  <img src={ra.og_image_url} alt={ra.title} className="w-24 h-20 object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-24 h-20 bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-2xl flex-shrink-0">📰</div>
+                )}
+                <div className="p-3 flex-1">
+                  <h4 className="text-sm font-medium line-clamp-2 group-hover:text-brand-primary transition-colors">{ra.title}</h4>
+                  <span className="text-xs text-slate-500 mt-1 block">{ra.source_name}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <hr className="border-white/10 my-2" />
+
+      {/* AI Q&A Chatbot */}
+      <ArticleQnA articleId={article.id} articleTitle={article.title} />
+
       {/* Comments Section */}
       <CommentSection articleId={article.id} tagIds={articleTagIds} />
 
-      {/* Footer & Original Link */}
-      <footer className="mt-4 flex flex-col gap-4">
-        <a
-          href={article.source_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-primary w-full text-center py-3 sm:py-4 text-base sm:text-lg"
-        >
-          해당 기사 원문 보기 ({article.source_name}) ↗
-        </a>
-      </footer>
+      {/* Footer & Original Link — only show if no inline "계속 읽기" link */}
+      {!showReadMoreOutlink && (
+        <footer className="mt-4 flex flex-col gap-4">
+          <a
+            href={article.source_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary w-full text-center py-3 sm:py-4 text-base sm:text-lg"
+          >
+            해당 기사 원문 보기 ({article.source_name}) ↗
+          </a>
+        </footer>
+      )}
     </div>
   );
 }

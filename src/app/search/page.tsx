@@ -30,6 +30,8 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
   const [tags, setTags] = useState<Tag[]>([])
+  const [aiMode, setAiMode] = useState(true)
+  const [aiSummary, setAiSummary] = useState('')
 
   // Fetch random tags on mount
   useEffect(() => {
@@ -43,14 +45,32 @@ export default function SearchPage() {
     if (!q.trim()) return
     setLoading(true)
     setSearched(true)
-    const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&page=${p}`)
-    const data = await res.json()
-    setArticles(data.articles)
-    setTotal(data.total)
-    setPage(data.page)
-    setTotalPages(data.totalPages)
+    setAiSummary('')
+
+    if (aiMode) {
+      // AI semantic search
+      const res = await fetch('/api/ai/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: q }),
+      })
+      const data = await res.json()
+      setArticles(data.results || [])
+      setTotal(data.results?.length || 0)
+      setAiSummary(data.ai_summary || '')
+      setTotalPages(1)
+      setPage(1)
+    } else {
+      // Regular keyword search
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&page=${p}`)
+      const data = await res.json()
+      setArticles(data.articles)
+      setTotal(data.total)
+      setPage(data.page)
+      setTotalPages(data.totalPages)
+    }
     setLoading(false)
-  }, [])
+  }, [aiMode])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,12 +103,12 @@ export default function SearchPage() {
       {/* Search Form */}
       <form onSubmit={handleSubmit} className="flex gap-2">
         <div className="relative flex-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">🔍</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">{aiMode ? '🤖' : '🔍'}</span>
           <input
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="기사, 스타트업, 키워드 검색..."
+            placeholder={aiMode ? 'AI에게 무엇이든 물어보세요... (예: "최근 100억 이상 투자 유치는?")' : '기사, 스타트업, 키워드 검색...'}
             className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-brand-primary text-sm"
             autoFocus
           />
@@ -97,6 +117,23 @@ export default function SearchPage() {
           {loading ? '검색 중...' : '검색'}
         </button>
       </form>
+
+      {/* AI Toggle */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setAiMode(!aiMode)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium transition-all ${
+            aiMode
+              ? 'bg-brand-primary/20 text-brand-primary border border-brand-primary/30'
+              : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
+          }`}
+        >
+          🤖 AI 검색 {aiMode ? 'ON' : 'OFF'}
+        </button>
+        <span className="text-xs text-slate-500">
+          {aiMode ? 'AI가 검색 의도를 파악하여 관련 기사를 추천합니다' : '키워드 매칭으로 기사를 찾습니다'}
+        </span>
+      </div>
 
       {/* Random Tags */}
       {tags.length > 0 && (
@@ -119,6 +156,15 @@ export default function SearchPage() {
           <p className="text-sm text-slate-400">
             {loading ? '검색 중...' : `"${query}" 검색 결과 ${total}건`}
           </p>
+
+          {/* AI Summary */}
+          {aiSummary && (
+            <div className="bento-card px-5 py-3 border-brand-primary/30 bg-brand-primary/5">
+              <p className="text-sm text-slate-200">
+                <span className="text-brand-primary font-bold">🤖 AI:</span> {aiSummary}
+              </p>
+            </div>
+          )}
 
           {articles.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

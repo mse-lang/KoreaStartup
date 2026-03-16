@@ -5,6 +5,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import ThemeToggle from '@/components/ThemeToggle';
 import UserMenu from '@/components/UserMenu';
 import TagNav from '@/components/TagNav';
+import NewsletterSignup from '@/components/NewsletterSignup';
 
 export default async function Home() {
   const supabase = await createClient();
@@ -97,6 +98,12 @@ export default async function Home() {
           KoreaStartup.kr
         </Link>
         <div className="flex gap-2 items-center flex-wrap">
+          <Link href="/briefing" className="px-3 py-1.5 rounded-full text-xs font-medium bg-brand-primary/20 text-brand-primary hover:bg-brand-primary/30 transition-colors">
+            🤖 AI 브리핑
+          </Link>
+          <Link href="/bookmarks" className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/5 text-slate-400 hover:bg-white/10 transition-colors">
+            📑 스크랩
+          </Link>
           <ThemeToggle />
           <LanguageSwitcher />
           <UserMenu />
@@ -286,6 +293,9 @@ export default async function Home() {
           )}
         </>
       )}
+
+      {/* Newsletter Signup */}
+      <NewsletterSignup />
 
       {/* Footer */}
       <footer className="mt-4 py-4 border-t border-white/5 text-center text-xs text-slate-600">

@@ -104,6 +104,8 @@ const TAG_RULES: { keywords: string[]; tag: string; slug: string; description: s
 
 // Community tags — special boards for community discussion
 const COMMUNITY_TAGS: { tag: string; slug: string; emoji: string; description: string }[] = [
+  { tag: '프리미엄', slug: 'premium', emoji: '💎',
+    description: '유료 구독자 전용 프리미엄 콘텐츠입니다.\n\n깊이 있는 분석 리포트, 독점 인터뷰, 투자 데이터 등 고급 정보를 제공합니다.\n\n스타트업 창업자와 투자자에게 경쟁력 있는 인사이트를 전달합니다.' },
   { tag: '오리지널', slug: 'original', emoji: '🌟',
     description: '코리아스타트업 크리에이터가 직접 작성하고 발행하는 독점 프리미엄 콘텐츠입니다.\n\n스타트업 생태계에 대한 깊이 있는 분석과 인사이트를 제공합니다.' },
   { tag: '창업고민', slug: 'startup-worries', emoji: '🤔',

@@ -171,6 +171,70 @@ function extractTags(text: string): { tag: string; slug: string; description: st
   ).map(r => ({ tag: r.tag, slug: r.slug, description: r.description }))
 }
 
+// Generate SEO-friendly URL slug from Korean/English title
+function generateSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣ㄱ-ㅎㅏ-ㅣ\s-]/g, '') // keep alphanumeric, Korean, spaces, hyphens
+    .replace(/\s+/g, '-')   // spaces to hyphens
+    .replace(/-+/g, '-')     // collapse multiple hyphens
+    .replace(/^-|-$/g, '')   // trim leading/trailing hyphens
+    .substring(0, 120)       // max 120 chars
+}
+
+// Optimize heading hierarchy in markdown content
+function optimizeHeadings(markdown: string): string {
+  // Ensure no H1 in body (article title is already H1)
+  // Convert H1 -> H2, H2 -> H3 within body
+  return markdown
+    .replace(/^# (?!#)/gm, '## ')   // H1 -> H2
+    .replace(/^## (?!#)/gm, '### ') // H2 -> H3
+}
+
+// Append compliance attribution footer
+function addComplianceFooter(content: string, sourceName: string, sourceUrl: string): string {
+  const footer = `\n\n---\n> 📰 이 기사의 원문은 [${sourceName}](${sourceUrl})에서 확인할 수 있습니다.`
+  // Don't add if already has attribution
+  if (content.includes('이 기사의 원문은')) return content
+  return content + footer
+}
+
+// Source priority — lower number = higher priority
+const SOURCE_PRIORITY: Record<string, number> = {
+  '벤처스퀘어': 1,
+  'EO': 2,
+  '전자신문': 3,
+  '한국경제': 4,
+  '매일경제': 5,
+  '파이낸셜뉴스': 6,
+  '조선비즈': 7,
+  '플래텀': 8,
+}
+
+// Normalize title for fuzzy comparison
+function normalizeTitle(title: string): string {
+  return title
+    .replace(/[^\wㄱ-ㅎㅏ-ㅣ가-힣]/g, '')  // keep only word chars + Korean
+    .toLowerCase()
+}
+
+// Check title similarity (Jaccard on character bigrams)
+function titleSimilarity(a: string, b: string): number {
+  const na = normalizeTitle(a)
+  const nb = normalizeTitle(b)
+  if (na.length < 4 || nb.length < 4) return 0
+
+  const bigramsA = new Set<string>()
+  for (let i = 0; i < na.length - 1; i++) bigramsA.add(na.substring(i, i + 2))
+  const bigramsB = new Set<string>()
+  for (let i = 0; i < nb.length - 1; i++) bigramsB.add(nb.substring(i, i + 2))
+
+  let intersection = 0
+  for (const bg of bigramsA) { if (bigramsB.has(bg)) intersection++ }
+  const union = bigramsA.size + bigramsB.size - intersection
+  return union === 0 ? 0 : intersection / union
+}
+
 export async function GET(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -201,7 +265,19 @@ export async function GET(request: Request) {
       }))
     : CATEGORIES
 
+  // Pre-fetch recent article titles for fuzzy dedup (last 7 days)
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString()
+  const { data: recentArticles } = await supabase
+    .from('articles')
+    .select('id, title, source_name, source_url')
+    .gte('created_at', weekAgo)
+
+  const existingTitles = (recentArticles || []).map(a => ({
+    id: a.id, title: a.title, source: a.source_name, url: a.source_url,
+  }))
+
   const results: { title: string; category: string; status: string }[] = []
+  const sourceComposition: Record<string, number> = {}
 
   for (const category of activeSources) {
     try {
@@ -214,7 +290,7 @@ export async function GET(request: Request) {
 
         if (!title || !url) continue
 
-        // Check for duplicates by source_url
+        // 1. Exact URL dedup
         const { data: existing } = await supabase
           .from('articles')
           .select('id')
@@ -222,9 +298,35 @@ export async function GET(request: Request) {
           .maybeSingle()
 
         if (existing) {
-          results.push({ title, category: category.label, status: '⏭️ 중복 스킵' })
+          results.push({ title, category: category.label, status: '⏭️ URL 중복 스킵' })
+          sourceComposition[category.source] = (sourceComposition[category.source] || 0)
           continue
         }
+
+        // 2. Title similarity dedup — check against recent articles
+        const currentPriority = SOURCE_PRIORITY[category.source] ?? 99
+        let isDuplicate = false
+
+        for (const ea of existingTitles) {
+          const sim = titleSimilarity(title, ea.title)
+          if (sim > 0.6) {
+            // Same story found — check source priority
+            const existingPriority = SOURCE_PRIORITY[ea.source] ?? 99
+            if (existingPriority <= currentPriority) {
+              // Existing article is from a higher or equal priority source — skip new one
+              results.push({ title, category: category.label, status: `⏭️ 유사 기사 존재 (${ea.source}, 유사도 ${(sim * 100).toFixed(0)}%)` })
+              isDuplicate = true
+              break
+            } else {
+              // New article is from a higher-priority source — replace existing
+              // Keep existing but still insert the new one, mark the swap
+              results.push({ title, category: category.label, status: `🔄 우선 출처로 대체 등록 (기존: ${ea.source}, 유사도 ${(sim * 100).toFixed(0)}%)` })
+              // Don't break — let it proceed to insert
+            }
+          }
+        }
+
+        if (isDuplicate) continue
 
         // Try Jina Reader first for markdown, fallback to RSS content
         let contentRaw = await fetchJinaReaderMarkdown(url)
@@ -233,15 +335,21 @@ export async function GET(request: Request) {
           contentRaw = stripHtml(htmlContent).substring(0, 4000)
         }
 
+        // Optimize headings & add compliance footer
+        contentRaw = optimizeHeadings(contentRaw)
+        contentRaw = addComplianceFooter(contentRaw, category.source, url)
+
         const ogImage = extractImage(item)
         const summary = await generateSummaryWithAI(title, contentRaw)
         const pubDate = item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString()
+        const slug = generateSlug(title)
 
         // Insert article
         const { data: inserted, error: insertError } = await supabase
           .from('articles')
           .insert({
             title,
+            slug,
             source_name: category.source,
             source_url: url,
             content_raw: contentRaw,
@@ -274,8 +382,12 @@ export async function GET(request: Request) {
                 .upsert({ article_id: inserted.id, tag_id: tagData.id }, { onConflict: 'article_id,tag_id' })
             }
           }
+
+          // Track for title dedup within this batch
+          existingTitles.push({ id: inserted.id, title, source: category.source, url })
         }
 
+        sourceComposition[category.source] = (sourceComposition[category.source] || 0) + 1
         results.push({ title, category: category.label, status: '✅ 등록 완료' })
       }
     } catch (e) {
@@ -292,9 +404,15 @@ export async function GET(request: Request) {
     }
   }
 
+  const newCount = results.filter(r => r.status.startsWith('✅')).length
+  const skipCount = results.filter(r => r.status.startsWith('⏭️')).length
+  const swapCount = results.filter(r => r.status.startsWith('🔄')).length
+
   return NextResponse.json({
-    message: `${results.filter(r => r.status.startsWith('✅')).length}개 신규 등록 / ${results.filter(r => r.status.startsWith('⏭️')).length}개 중복 스킵`,
+    message: `${newCount}개 신규 등록 / ${skipCount}개 중복 스킵 / ${swapCount}개 우선 출처 대체`,
     crawled_at: new Date().toISOString(),
+    source_composition: sourceComposition,
     results,
   })
 }
+

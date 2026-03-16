@@ -37,7 +37,7 @@ export default async function ArticleListPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex justify-between items-center">
+      <div className="admin-header flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">기사 관리</h1>
           <p className="text-slate-400 mt-1">

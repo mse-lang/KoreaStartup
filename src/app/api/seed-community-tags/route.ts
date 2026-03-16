@@ -4,6 +4,7 @@ import { COMMUNITY_TAGS } from '@/lib/tag-rules'
 
 export async function GET() {
   const supabase = await createClient()
+  // require auth to seed tags
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: '로그인 필요' }, { status: 401 })
 
