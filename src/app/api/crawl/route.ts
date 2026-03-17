@@ -31,6 +31,14 @@ const CATEGORIES = [
   { name: 'chosunbiz-it',   feed: 'https://biz.chosun.com/site/data/rss/it.xml',                 label: '조선비즈IT',   source: '조선비즈',   maxArticles: 5 },
   // EO (스타트업 콘텐츠)
   { name: 'eo-planet',      feed: 'https://eopla.net/feed',                                      label: 'EO플래닛',     source: 'EO',         maxArticles: 5 },
+  // IT동아
+  { name: 'itdonga',         feed: 'https://it.donga.com/feeds/rss/',                              label: 'IT동아',       source: 'IT동아',     maxArticles: 3 },
+  // ZDNet Korea
+  { name: 'zdnet-korea',     feed: 'http://feeds.feedburner.com/zdkorea',                          label: 'ZDNet',        source: 'ZDNet Korea', maxArticles: 3 },
+  // GeekNews
+  { name: 'geeknews',        feed: 'https://news.hada.io/rss/news',                               label: '긱뉴스',       source: 'GeekNews',   maxArticles: 3 },
+  // 블로터
+  { name: 'bloter',          feed: 'http://feeds.feedburner.com/Bloter',                           label: '블로터',       source: '블로터',     maxArticles: 3 },
 ]
 
 import { TAG_RULES } from '@/lib/tag-rules'
@@ -217,6 +225,10 @@ const SOURCE_PRIORITY: Record<string, number> = {
   '파이낸셜뉴스': 6,
   '조선비즈': 7,
   '플래텀': 8,
+  'IT동아': 9,
+  'ZDNet Korea': 10,
+  'GeekNews': 11,
+  '블로터': 12,
 }
 
 // Normalize title for fuzzy comparison

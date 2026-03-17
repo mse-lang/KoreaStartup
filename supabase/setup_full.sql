@@ -438,7 +438,11 @@ INSERT INTO public.rss_sources (name, feed_url, label, source_name, max_articles
   ('platum-news',    'https://platum.kr/feed',                                      '플래텀',       '플래텀',     12),
   ('eo-planet',      'https://eopla.net/feed',                                      'EO플래닛',     'EO',         8),
   ('news1-it',       'https://www.news1.kr/rss/it',                                 'IT뉴스',       '뉴스1',      8),
-  ('etnews-startup', 'https://rss.etnews.com/Section901.xml',                       'ET스타트업',   '전자신문',   8)
+  ('etnews-startup', 'https://rss.etnews.com/Section901.xml',                       'ET스타트업',   '전자신문',   8),
+  ('itdonga',        'https://it.donga.com/feeds/rss/',                              'IT동아',       'IT동아',     3),
+  ('zdnet-korea',    'http://feeds.feedburner.com/zdkorea',                          'ZDNet',        'ZDNet Korea', 3),
+  ('geeknews',       'https://news.hada.io/rss/news',                               '긱뉴스',       'GeekNews',   3),
+  ('bloter',         'http://feeds.feedburner.com/Bloter',                           '블로터',       '블로터',     3)
 ON CONFLICT (feed_url) DO NOTHING;
 
 -- ============================================================
