@@ -39,10 +39,10 @@ export default async function Home() {
   };
   articles.sort((a, b) => (priorityOrder[a.category] ?? 5) - (priorityOrder[b.category] ?? 5));
 
-  // Split into 3 tiers: headline 1, sub 6, brief 5
+  // Split into 3 tiers: headline 1, sub 6, brief 10
   const headline = articles[0] ?? null;
-  const subArticles = articles.slice(1, 7);   // 6 sub-articles
-  const briefArticles = articles.slice(7, 12); // 5 brief articles
+  const subArticles = articles.slice(1, 7);    // 6 sub-articles
+  const briefArticles = articles.slice(7, 17); // up to 10 brief articles
 
   // Get comment counts for each article (for fire emoji)
   const articleIds = articles.map(a => a.id);
@@ -147,9 +147,11 @@ export default async function Home() {
                   {headline.title}
                 </h2>
                 {headline.summary_5lines && (
-                  <p className="text-slate-300 line-clamp-2 sm:line-clamp-3 leading-relaxed text-sm sm:text-base">
-                    {headline.summary_5lines.split('\n')[0]?.replace(/^\d+\.\s*/, '')}
-                  </p>
+                  <div className="text-slate-300 leading-relaxed text-sm sm:text-base space-y-1">
+                    {headline.summary_5lines.split('\n').filter(Boolean).slice(0, 3).map((line: string, i: number) => (
+                      <p key={i} className="line-clamp-2">{line.replace(/^\d+\.\s*/, '').replace(/\*+/g, '')}</p>
+                    ))}
+                  </div>
                 )}
                 <span className="text-xs text-slate-500">{timeAgo(headline.created_at)} · {headline.source_name}</span>
               </div>
