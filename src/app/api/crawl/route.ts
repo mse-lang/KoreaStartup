@@ -128,10 +128,14 @@ async function fetchJinaReaderMarkdown(url: string): Promise<string> {
   }
 }
 
-// Generate summary using Gemini AI
-async function generateSummaryWithAI(title: string, markdownText: string): Promise<string> {
+// Generate summary using Gemini AI, with RSS description as fallback
+async function generateSummaryWithAI(title: string, markdownText: string, rssDescription?: string): Promise<string> {
   try {
     if (!process.env.GEMINI_API_KEY) {
+      // No API key — use RSS description if available
+      if (rssDescription && rssDescription.trim().length > 20) {
+        return rssDescription.trim();
+      }
       return `1. ${title}`;
     }
 
@@ -159,6 +163,10 @@ ${markdownText.substring(0, 8000)} // 생략 방지
     }
   } catch (error) {
     console.error('Gemini Summary Error:', error);
+  }
+  // Fallback: use RSS description if available, otherwise just the title
+  if (rssDescription && rssDescription.trim().length > 20) {
+    return rssDescription.trim();
   }
   return `1. ${title}`;
 }
@@ -340,7 +348,9 @@ export async function GET(request: Request) {
         contentRaw = addComplianceFooter(contentRaw, category.source, url)
 
         const ogImage = extractImage(item)
-        const summary = await generateSummaryWithAI(title, contentRaw)
+        // Use RSS description as fallback for summary
+        const rssDescription = stripHtml(item.contentSnippet || item.content || '').substring(0, 500)
+        const summary = await generateSummaryWithAI(title, contentRaw, rssDescription)
         const pubDate = item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString()
         const slug = generateSlug(title)
         const authorName = (item.creator || (item as any).author || '').trim() || null
