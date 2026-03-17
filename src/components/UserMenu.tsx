@@ -60,7 +60,7 @@ export default function UserMenu() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+        className="user-menu-btn flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
       >
         {avatar ? (
           <img src={avatar} alt="" className="w-5 h-5 rounded-full" />
@@ -76,7 +76,7 @@ export default function UserMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-48 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-xl overflow-hidden z-50">
+        <div className="user-menu-popup absolute right-0 top-full mt-2 w-48 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-xl overflow-hidden z-50">
           <div className="px-4 py-3 border-b border-white/5">
             <p className="text-sm font-medium truncate">{displayName}</p>
             <p className="text-xs text-slate-500 truncate">{user.email}</p>
@@ -84,20 +84,20 @@ export default function UserMenu() {
           <Link
             href="/admin"
             onClick={() => setOpen(false)}
-            className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 text-slate-300 hover:bg-white/5 transition-colors"
+            className="user-menu-item w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 text-slate-300 hover:bg-white/5 transition-colors"
           >
             🛠️ 관리자 대시보드
           </Link>
           <Link
             href="/admin/profile"
             onClick={() => setOpen(false)}
-            className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 text-slate-300 hover:bg-white/5 transition-colors"
+            className="user-menu-item w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 text-slate-300 hover:bg-white/5 transition-colors"
           >
             👤 내 프로필
           </Link>
           <button
             onClick={handleSignOut}
-            className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 text-red-400 hover:bg-red-500/10 transition-colors border-t border-white/5"
+            className="user-menu-item w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 text-red-400 hover:bg-red-500/10 transition-colors border-t border-white/5"
           >
             🔓 로그아웃
           </button>

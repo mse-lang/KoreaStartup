@@ -256,6 +256,42 @@
   color: #475569 !important;
 }
 
+/* --- User Menu Popup (light mode) --- */
+[data-theme="light"] .user-menu-btn {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  color: #334155 !important;
+}
+[data-theme="light"] .user-menu-btn:hover {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+[data-theme="light"] .user-menu-popup {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
+}
+[data-theme="light"] .user-menu-popup p {
+  color: #0f172a !important;
+}
+[data-theme="light"] .user-menu-popup p.text-slate-500 {
+  color: #64748b !important;
+}
+[data-theme="light"] .user-menu-popup .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+[data-theme="light"] .user-menu-item {
+  color: #334155 !important;
+}
+[data-theme="light"] .user-menu-item:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+[data-theme="light"] .user-menu-item.text-red-400 {
+  color: #dc2626 !important;
+}
+[data-theme="light"] .user-menu-item.text-red-400:hover {
+  background-color: rgba(239, 68, 68, 0.06) !important;
+}
+
 @layer components {
   .bento-card {
     background-color: var(--color-glass-bg);
