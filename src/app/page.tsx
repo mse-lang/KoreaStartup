@@ -16,7 +16,7 @@ export default async function Home() {
 
   const { data: allArticles } = await supabase
     .from('articles')
-    .select('id, title, source_name, summary_5lines, og_image_url, category, published_at, created_at')
+    .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at')
     .gte('created_at', thirtyHoursAgo)
     .order('created_at', { ascending: false })
     .limit(30);
@@ -26,7 +26,7 @@ export default async function Home() {
   if (articles.length < 5) {
     const { data: fallback } = await supabase
       .from('articles')
-      .select('id, title, source_name, summary_5lines, og_image_url, category, published_at, created_at')
+      .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at')
       .order('created_at', { ascending: false })
       .limit(12);
     articles = fallback ?? [];
@@ -146,12 +146,11 @@ export default async function Home() {
                 <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight group-hover:text-brand-primary transition-colors">
                   {headline.title}
                 </h2>
-                {headline.summary_5lines && (
-                  <div className="text-slate-300 leading-relaxed text-sm sm:text-base space-y-1">
-                    {headline.summary_5lines.split('\n').filter(Boolean).slice(0, 3).map((line: string, i: number) => (
-                      <p key={i} className="line-clamp-2">{line.replace(/^\d+\.\s*/, '').replace(/\*+/g, '')}</p>
-                    ))}
-                  </div>
+                {/* Show excerpt (RSS description) if available, else AI summary */}
+                {(headline.excerpt || headline.summary_5lines) && (
+                  <p className="text-slate-300 line-clamp-3 leading-relaxed text-sm sm:text-base">
+                    {headline.excerpt || headline.summary_5lines?.split('\n')[0]?.replace(/^\d+\.\s*/, '')}
+                  </p>
                 )}
                 <span className="text-xs text-slate-500">{timeAgo(headline.created_at)} · {headline.source_name}</span>
               </div>
@@ -200,16 +199,20 @@ export default async function Home() {
                         {article.title}
                       </h4>
                       
-                      {/* AI Snippets Box */}
-                      {article.summary_5lines && (
+                      {/* Show excerpt if available, else AI summary snippets */}
+                      {(article.excerpt || article.summary_5lines) && (
                         <div className="mt-2 text-sm text-slate-300 bg-black/20 rounded-xl p-3 border border-white/5 flex-1">
-                          <ul className="list-disc pl-4 space-y-1.5 marker:text-brand-primary/60">
-                            {article.summary_5lines.split('\n').filter(Boolean).slice(0, 3).map((line: string, i: number) => (
-                               <li key={i} className="line-clamp-2 leading-relaxed text-xs sm:text-sm">
+                          {article.excerpt ? (
+                            <p className="line-clamp-3 leading-relaxed text-xs sm:text-sm">{article.excerpt}</p>
+                          ) : (
+                            <ul className="list-disc pl-4 space-y-1.5 marker:text-brand-primary/60">
+                              {article.summary_5lines!.split('\n').filter(Boolean).slice(0, 3).map((line: string, i: number) => (
+                                <li key={i} className="line-clamp-2 leading-relaxed text-xs sm:text-sm">
                                   {line.replace(/^\d+\.\s*/, '').replace(/\*+/g, '')}
-                               </li>
-                            ))}
-                          </ul>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                         </div>
                       )}
 

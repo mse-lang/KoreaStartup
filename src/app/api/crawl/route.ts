@@ -377,6 +377,7 @@ export async function GET(request: Request) {
             source_url: url,
             content_raw: contentRaw,
             summary_5lines: summary,
+            excerpt: rssDescription || null,   // RSS description for card display
             og_image_url: ogImage,
             category: category.name,
             published_at: pubDate,

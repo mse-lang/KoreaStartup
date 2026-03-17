@@ -85,7 +85,8 @@ CREATE TABLE IF NOT EXISTS public.articles (
   price numeric DEFAULT 0,
   free_until timestamptz DEFAULT NULL,
   view_count integer DEFAULT 0,
-  slug text
+  slug text,
+  excerpt text                         -- RSS description / manual excerpt for cards
 );
 
 ALTER TABLE public.articles ENABLE ROW LEVEL SECURITY;

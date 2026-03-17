@@ -13,11 +13,13 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
   const [sourceUrl, setSourceUrl] = useState('')
   const [contentRaw, setContentRaw] = useState('')
   const [summary, setSummary] = useState('')
+  const [excerpt, setExcerpt] = useState('')
   const [ogImageUrl, setOgImageUrl] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [existingSources, setExistingSources] = useState<string[]>([])
   const router = useRouter()
   const supabase = createClient()
 
@@ -37,11 +39,26 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
         setSourceUrl(data.source_url)
         setContentRaw(data.content_raw)
         setSummary(data.summary_5lines || '')
+        setExcerpt(data.excerpt || '')
         setOgImageUrl(data.og_image_url || '')
       }
       setLoading(false)
     }
+
+    // Fetch distinct source names for autocomplete
+    const fetchSources = async () => {
+      const { data } = await supabase
+        .from('rss_sources')
+        .select('source_name')
+        .order('source_name')
+      if (data) {
+        const unique = [...new Set(data.map(s => s.source_name))]
+        setExistingSources(unique)
+      }
+    }
+
     fetchArticle()
+    fetchSources()
   }, [id, supabase])
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -57,6 +74,7 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
         source_url: sourceUrl,
         content_raw: contentRaw,
         summary_5lines: summary,
+        excerpt: excerpt || null,
         og_image_url: ogImageUrl || null,
       })
       .eq('id', id)
@@ -127,18 +145,21 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-slate-300">출처 이름 *</label>
-            <select
+            <input
+              type="text"
+              list="source-list"
               value={sourceName}
               onChange={(e) => setSourceName(e.target.value)}
+              required
+              placeholder="직접 입력 또는 선택"
               className="bg-black/20 border border-white/10 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary text-sm"
-            >
-              <option value="벤처스퀘어">벤처스퀘어</option>
-              <option value="K-Startup">K-Startup (정부)</option>
-              <option value="나라장터">나라장터 (조달청)</option>
-              <option value="창업진흥원">창업진흥원</option>
-              <option value="TechCrunch">TechCrunch</option>
-              <option value="기타">기타</option>
-            </select>
+            />
+            <datalist id="source-list">
+              {existingSources.map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+            <p className="text-xs text-slate-500">기존 출처 선택 또는 새 출처명 직접 입력</p>
           </div>
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-slate-300">원문 링크 (URL) *</label>
@@ -150,6 +171,17 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
               className="bg-black/20 border border-white/10 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary text-sm"
             />
           </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-slate-300">📝 요약글 (카드에 표시)</label>
+          <textarea
+            value={excerpt}
+            onChange={(e) => setExcerpt(e.target.value)}
+            rows={3}
+            placeholder="기사 카드에 표시될 요약글입니다. RSS에서 자동으로 가져오거나 직접 작성할 수 있습니다."
+            className="bg-black/20 border border-white/10 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary text-sm"
+          />
         </div>
 
         <div className="flex flex-col gap-2">

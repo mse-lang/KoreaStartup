@@ -30,7 +30,7 @@ export async function GET() {
   ).join('\n\n')
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+    const model = genAI.getGenerativeModel({ model: process.env.AI_MODEL_FAST || 'gemini-2.0-flash' })
 
     const prompt = `당신은 한국 스타트업 생태계 전문 뉴스 앵커입니다.
 지난 24시간 동안 수집된 아래 기사들을 분석하고, 2분 안에 읽을 수 있는 "오늘의 AI 브리핑"을 작성해주세요.
