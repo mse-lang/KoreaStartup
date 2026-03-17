@@ -443,7 +443,10 @@ INSERT INTO public.rss_sources (name, feed_url, label, source_name, max_articles
   ('itdonga',        'https://it.donga.com/feeds/rss/',                              'IT동아',       'IT동아',     3),
   ('zdnet-korea',    'http://feeds.feedburner.com/zdkorea',                          'ZDNet',        'ZDNet Korea', 3),
   ('geeknews',       'https://news.hada.io/rss/news',                               '긱뉴스',       'GeekNews',   3),
-  ('bloter',         'http://feeds.feedburner.com/Bloter',                           '블로터',       '블로터',     3)
+  ('bloter',         'http://feeds.feedburner.com/Bloter',                           '블로터',       '블로터',     3),
+  ('kstartup-news',  'https://www.k-startup.go.kr/web/contents/rss/startupnews.do',  'K-Startup뉴스', 'K-Startup', 3),
+  ('bizinfo-support', 'https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do',              '기업마당',       '기업마당',   3),
+  ('mss-news',       'https://www.korea.kr/rss/dept_mss.xml',                        '중기부',         '중소벤처기업부', 3)
 ON CONFLICT (feed_url) DO NOTHING;
 
 -- ============================================================

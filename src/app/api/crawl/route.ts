@@ -39,6 +39,10 @@ const CATEGORIES = [
   { name: 'geeknews',        feed: 'https://news.hada.io/rss/news',                               label: '긱뉴스',       source: 'GeekNews',   maxArticles: 3 },
   // 블로터
   { name: 'bloter',          feed: 'http://feeds.feedburner.com/Bloter',                           label: '블로터',       source: '블로터',     maxArticles: 3 },
+  // 정부 지원사업 정보
+  { name: 'kstartup-news',   feed: 'https://www.k-startup.go.kr/web/contents/rss/startupnews.do',  label: 'K-Startup뉴스', source: 'K-Startup',  maxArticles: 3 },
+  { name: 'bizinfo-support',  feed: 'https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do',              label: '기업마당',       source: '기업마당',   maxArticles: 3 },
+  { name: 'mss-news',        feed: 'https://www.korea.kr/rss/dept_mss.xml',                        label: '중기부',         source: '중소벤처기업부', maxArticles: 3 },
 ]
 
 import { TAG_RULES } from '@/lib/tag-rules'
@@ -229,6 +233,9 @@ const SOURCE_PRIORITY: Record<string, number> = {
   'ZDNet Korea': 10,
   'GeekNews': 11,
   '블로터': 12,
+  'K-Startup': 13,
+  '기업마당': 14,
+  '중소벤처기업부': 15,
 }
 
 // Normalize title for fuzzy comparison
