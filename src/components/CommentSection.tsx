@@ -208,6 +208,8 @@ export default function CommentSection({ articleId, tagIds }: { articleId: strin
 
     if (result.is_blinded) {
       setNotice('⚠️ 부적절한 표현이 감지되어 블라인드 처리되었습니다.')
+    } else if (result.linked_tags && result.linked_tags.length > 0) {
+      setNotice(`🏷️ 이 기사가 ${result.linked_tags.map((t: string) => `#${t}`).join(', ')} 태그에 연결되었습니다!`)
     }
 
     setContent('')
@@ -274,8 +276,9 @@ export default function CommentSection({ articleId, tagIds }: { articleId: strin
         </div>
         {mode === 'anon' && <p className="text-xs text-slate-500">익명으로 작성 시 임의의 닉네임과 마스킹된 IP가 표시됩니다.</p>}
         <textarea value={content} onChange={(e) => setContent(e.target.value)}
-          placeholder={replyingTo ? '답글을 입력하세요...' : '댓글을 입력하세요...'} rows={3}
+          placeholder={replyingTo ? '답글을 입력하세요...' : '댓글을 입력하세요... (예: #창업고민 태그로 게시판에 연결)'}  rows={3}
           className="bg-black/20 border border-white/10 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary text-sm resize-none" />
+        <p className="text-[11px] text-slate-600">💡 <span className="text-slate-500">#태그이름</span>을 댓글에 포함하면 이 기사가 해당 태그 게시판에 자동으로 연결됩니다.</p>
         <button type="submit" disabled={loading || !content.trim()} className="btn-primary py-2 disabled:opacity-50">
           {loading ? '등록 중...' : replyingTo ? '답글 등록' : '댓글 등록'}
         </button>

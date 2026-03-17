@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { COMMUNITY_TAGS } from '@/lib/tag-rules';
 
 const COMMUNITY_SLUGS = COMMUNITY_TAGS.map(t => t.slug);
+// Premium is handled as a special pinned tag, not in community section
+const COMMUNITY_SLUGS_DISPLAY = COMMUNITY_SLUGS.filter(s => s !== 'premium');
 
 // Simple seeded shuffle for server components (changes per request)
 function shuffle<T>(arr: T[]): T[] {
@@ -22,20 +24,46 @@ interface TagNavProps {
 export default async function TagNav({ activeSlug }: TagNavProps) {
   const supabase = await createClient();
 
-  // Fetch all tags (no limit — tags grow over time)
+  // Fetch tags that appear on recent articles (last 7 days) for relevance
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const { data: recentArticleTags } = await supabase
+    .from('article_tags')
+    .select('tag_id, tags(name, slug, article_count), articles!inner(created_at)')
+    .gte('articles.created_at', weekAgo);
+
+  // Deduplicate tags and track recency
+  const tagMap = new Map<string, { name: string; slug: string; article_count: number }>();
+  for (const at of recentArticleTags || []) {
+    const tag = Array.isArray(at.tags) ? at.tags[0] : at.tags;
+    if (tag && !tagMap.has(tag.slug)) {
+      tagMap.set(tag.slug, { name: tag.name, slug: tag.slug, article_count: tag.article_count ?? 0 });
+    }
+  }
+
+  // Also fetch all tags as fallback (in case recent articles have few tags)
   const { data: allTags } = await supabase
     .from('tags')
     .select('name, slug, article_count');
 
-  if (!allTags || allTags.length === 0) return null;
+  const allTagsList = allTags || [];
 
-  // Community tags (emoji) — pinned first, order by slug for consistency
-  const communityTags = allTags
-    .filter(t => COMMUNITY_SLUGS.includes(t.slug))
-    .sort((a, b) => COMMUNITY_SLUGS.indexOf(a.slug) - COMMUNITY_SLUGS.indexOf(b.slug));
+  // Community tags (emoji) — pinned, but exclude 'premium' (it has its own button)
+  const communityTags = allTagsList
+    .filter(t => COMMUNITY_SLUGS_DISPLAY.includes(t.slug))
+    .sort((a, b) => COMMUNITY_SLUGS_DISPLAY.indexOf(a.slug) - COMMUNITY_SLUGS_DISPLAY.indexOf(b.slug));
 
-  // Regular tags — randomized every page load
-  const regularTags = shuffle(allTags.filter(t => !COMMUNITY_SLUGS.includes(t.slug)));
+  // Recent article tags (non-community) — randomized
+  const recentRegularTags = shuffle(
+    Array.from(tagMap.values()).filter(t => !COMMUNITY_SLUGS.includes(t.slug))
+  );
+
+  // Fallback: if not enough recent tags, add from allTags
+  const recentSlugs = new Set(recentRegularTags.map(t => t.slug));
+  const fallbackTags = shuffle(
+    allTagsList.filter(t => !COMMUNITY_SLUGS.includes(t.slug) && !recentSlugs.has(t.slug))
+  );
+
+  const displayTags = [...recentRegularTags, ...fallbackTags].slice(0, 12);
 
   return (
     <nav className="tag-nav-scroll flex gap-1.5 flex-wrap items-center -mt-2">
@@ -69,7 +97,7 @@ export default async function TagNav({ activeSlug }: TagNavProps) {
         💎 프리미엄
       </Link>
 
-      {/* Community tags — always pinned with special styling */}
+      {/* Community tags — always pinned with special styling (excluding premium) */}
       {communityTags.map((t) => (
         <Link
           key={t.slug}
@@ -85,12 +113,12 @@ export default async function TagNav({ activeSlug }: TagNavProps) {
       ))}
 
       {/* Separator */}
-      {communityTags.length > 0 && regularTags.length > 0 && (
+      {communityTags.length > 0 && displayTags.length > 0 && (
         <span className="text-white/10 self-center">|</span>
       )}
 
-      {/* Regular tags — randomized */}
-      {regularTags.slice(0, 12).map((t) => (
+      {/* Regular tags — from recent articles, randomized */}
+      {displayTags.map((t) => (
         <Link
           key={t.slug}
           href={`/tag/${t.slug}`}

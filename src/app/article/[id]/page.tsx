@@ -14,6 +14,7 @@ import ShareButtons from '@/components/ShareButtons';
 import BookmarkButton from '@/components/BookmarkButton';
 import ViewTracker from '@/components/ViewTracker';
 import ArticleQnA from '@/components/ArticleQnA';
+import ArticleTagInput from '@/components/ArticleTagInput';
 import type { Metadata } from 'next';
 
 // SEO: Dynamic metadata for each article
@@ -307,26 +308,17 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
           )}
         </div>
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight">{article.title}</h1>
-        {/* Tags */}
+        {/* Tags — interactive */}
         {await (async () => {
           const { data: tagLinks } = await supabase
             .from('article_tags')
-            .select('tag_id, tags(name, slug)')
+            .select('tag_id, tags(id, name, slug)')
             .eq('article_id', article.id);
-          if (!tagLinks || tagLinks.length === 0) return null;
-          return (
-            <div className="flex gap-2 flex-wrap">
-              {tagLinks.map((tl: any) => (
-                <Link
-                  key={tl.tag_id}
-                  href={`/tag/${tl.tags?.slug ?? tl.tags?.[0]?.slug}`}
-                  className="px-3 py-1 rounded-full text-xs font-medium bg-brand-primary/20 text-brand-primary hover:bg-brand-primary/30 transition-colors"
-                >
-                  #{tl.tags?.name ?? tl.tags?.[0]?.name}
-                </Link>
-              ))}
-            </div>
-          );
+          const existingTags = (tagLinks || []).map((tl: any) => {
+            const t = Array.isArray(tl.tags) ? tl.tags[0] : tl.tags;
+            return { id: t?.id ?? tl.tag_id, name: t?.name ?? '', slug: t?.slug ?? '' };
+          }).filter((t: any) => t.name);
+          return <ArticleTagInput articleId={article.id} existingTags={existingTags} />;
         })()}
       </header>
 
