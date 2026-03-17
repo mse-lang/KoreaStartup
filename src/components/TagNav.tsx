@@ -66,11 +66,11 @@ export default async function TagNav({ activeSlug }: TagNavProps) {
   const displayTags = [...recentRegularTags, ...fallbackTags].slice(0, 12);
 
   return (
-    <nav className="tag-nav-scroll flex gap-1.5 flex-wrap items-center -mt-2">
+    <nav className="tag-nav-scroll flex gap-1.5 overflow-x-auto pb-2 -mt-2 scrollbar-hide md:flex-wrap md:overflow-visible md:pb-0" style={{ WebkitOverflowScrolling: 'touch' }}>
       {/* Home link */}
       <Link
         href="/"
-        className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+        className={`whitespace-nowrap flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
           !activeSlug ? 'bg-brand-primary text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'
         }`}
       >
@@ -80,7 +80,7 @@ export default async function TagNav({ activeSlug }: TagNavProps) {
       {/* Search link */}
       <Link
         href="/search"
-        className="px-2.5 py-1 rounded-full text-xs font-medium bg-white/5 text-slate-400 hover:bg-white/10 transition-colors"
+        className="whitespace-nowrap flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-medium bg-white/5 text-slate-400 hover:bg-white/10 transition-colors"
       >
         🔍 검색
       </Link>
@@ -88,7 +88,7 @@ export default async function TagNav({ activeSlug }: TagNavProps) {
       {/* Premium tag — always pinned */}
       <Link
         href="/tag/premium"
-        className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+        className={`whitespace-nowrap flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold transition-all ${
           activeSlug === 'premium'
             ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-lg shadow-amber-500/30'
             : 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-400 hover:from-amber-500/30 hover:to-yellow-500/30 border border-amber-500/30'
@@ -102,7 +102,7 @@ export default async function TagNav({ activeSlug }: TagNavProps) {
         <Link
           key={t.slug}
           href={`/tag/${t.slug}`}
-          className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+          className={`whitespace-nowrap flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
             t.slug === activeSlug
               ? 'bg-yellow-500 text-black font-bold'
               : 'bg-yellow-500/15 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/20'
@@ -114,7 +114,7 @@ export default async function TagNav({ activeSlug }: TagNavProps) {
 
       {/* Separator */}
       {communityTags.length > 0 && displayTags.length > 0 && (
-        <span className="text-white/10 self-center">|</span>
+        <span className="text-white/10 self-center flex-shrink-0">|</span>
       )}
 
       {/* Regular tags — from recent articles, randomized */}
@@ -122,7 +122,7 @@ export default async function TagNav({ activeSlug }: TagNavProps) {
         <Link
           key={t.slug}
           href={`/tag/${t.slug}`}
-          className={`px-2.5 py-1 rounded-full text-xs transition-colors ${
+          className={`whitespace-nowrap flex-shrink-0 px-2.5 py-1 rounded-full text-xs transition-colors ${
             t.slug === activeSlug
               ? 'bg-brand-primary text-white'
               : 'bg-white/5 text-slate-400 hover:bg-brand-primary/20 hover:text-brand-primary'

@@ -292,6 +292,15 @@
   background-color: rgba(239, 68, 68, 0.06) !important;
 }
 
+/* --- Scrollbar hide utility (mobile horizontal scroll) --- */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 @layer components {
   .bento-card {
     background-color: var(--color-glass-bg);
