@@ -15,6 +15,7 @@ import BookmarkButton from '@/components/BookmarkButton';
 import ViewTracker from '@/components/ViewTracker';
 import ArticleQnA from '@/components/ArticleQnA';
 import ArticleTagInput from '@/components/ArticleTagInput';
+import AISummaryCard from '@/components/AISummaryCard';
 import type { Metadata } from 'next';
 
 // SEO: Dynamic metadata for each article
@@ -339,21 +340,12 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
 
       {/* AI 5-Line Summary */}
       {article.summary_5lines && (
-        <section className="bento-card p-5 sm:p-6 border-brand-primary/50 relative overflow-hidden">
-          <h2 className="text-lg font-bold mb-3 flex items-center gap-2 text-brand-primary">
-            ✨ AI 핵심 요약
-          </h2>
-          <ul className="space-y-2.5">
-            {article.summary_5lines.split('\n').filter((l: string) => l.trim()).map((line: string, idx: number) => (
-              <li key={idx} className="flex items-start gap-3">
-                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-brand-primary/20 text-brand-primary flex items-center justify-center text-xs font-bold mt-0.5">
-                  {idx + 1}
-                </span>
-              <p className="text-sm sm:text-base leading-relaxed">{decodeEntities(line.replace(/^\d+\.\s*/, ''))}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <AISummaryCard
+          lines={article.summary_5lines
+            .split('\n')
+            .filter((l: string) => l.trim())
+            .map((line: string) => decodeEntities(line.replace(/^\d+\.\s*/, '')))}
+        />
       )}
 
       {/* Article Body — Markdown Rendered */}

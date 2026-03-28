@@ -11,47 +11,56 @@ export default async function Home() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Fetch articles from the last 30 hours
-  const thirtyHoursAgo = new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString();
-
-  const { data: allArticles } = await supabase
+  // === PRIMARY: interview-news, guide-startups, special-post (최신 12개) ===
+  const { data: featuredRaw } = await supabase
     .from('articles')
-    .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at')
-    .gte('created_at', thirtyHoursAgo)
+    .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at, external_url')
+    .in('category', ['interview-news', 'guide-startups', 'special-post'])
     .order('created_at', { ascending: false })
-    .limit(30);
+    .limit(12);
 
-  // Fallback if not enough recent articles
-  let articles = allArticles ?? [];
-  if (articles.length < 5) {
+  // Fallback if not enough featured articles
+  let featuredArticles = featuredRaw ?? [];
+  if (featuredArticles.length < 3) {
     const { data: fallback } = await supabase
       .from('articles')
-      .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at')
+      .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at, external_url')
+      .in('category', ['interview-news', 'guide-startups', 'special-post'])
       .order('created_at', { ascending: false })
       .limit(12);
-    articles = fallback ?? [];
+    featuredArticles = fallback ?? [];
   }
 
-  // Priority sort
-  const priorityOrder: Record<string, number> = {
-    'special-post': 0, 'interview-news': 1, 'startup-topic': 2,
-    'guide-startups': 3, 'announcement': 4, 'general': 5,
-  };
-  articles.sort((a, b) => (priorityOrder[a.category] ?? 5) - (priorityOrder[b.category] ?? 5));
+  // === SECONDARY: general, announcement, startup-topic (최신 15개) ===
+  const { data: briefRaw } = await supabase
+    .from('articles')
+    .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at, external_url')
+    .in('category', ['general', 'announcement', 'startup-topic'])
+    .order('created_at', { ascending: false })
+    .limit(15);
 
-  // Split into 3 tiers: headline 1, sub 6, brief 10
-  const headline = articles[0] ?? null;
-  const subArticles = articles.slice(1, 7);    // 6 sub-articles
-  const briefArticles = articles.slice(7, 17); // up to 10 brief articles
+  const briefArticles = briefRaw ?? [];
 
-  // Get comment counts for each article (for fire emoji)
-  const articleIds = articles.map(a => a.id);
+  // Hero: interview-news or special-post first, then any featured
+  const heroArticle =
+    featuredArticles.find(a => a.category === 'interview-news') ??
+    featuredArticles.find(a => a.category === 'special-post') ??
+    featuredArticles[0] ??
+    null;
+
+  // Grid: remaining featured (excluding hero), max 6
+  const gridArticles = featuredArticles
+    .filter(a => a.id !== heroArticle?.id)
+    .slice(0, 6);
+
+  // Get comment counts
+  const allIds = [...featuredArticles, ...briefArticles].map(a => a.id);
   let commentCounts: Record<string, number> = {};
-  if (articleIds.length > 0) {
+  if (allIds.length > 0) {
     const { data: counts } = await supabase
       .from('comments')
       .select('article_id')
-      .in('article_id', articleIds);
+      .in('article_id', allIds);
     if (counts) {
       for (const c of counts) {
         commentCounts[c.article_id] = (commentCounts[c.article_id] ?? 0) + 1;
@@ -59,20 +68,24 @@ export default async function Home() {
     }
   }
 
-  // Fetch latest 10 comments
-  const { data: latestComments } = await supabase
-    .from('comments')
-    .select('id, content, anonymous_name, user_id, is_blinded, created_at, article_id, articles(title)')
-    .eq('is_blinded', false)
-    .order('created_at', { ascending: false })
-    .limit(10);
-
   const categoryLabel = (cat: string) => {
     const map: Record<string, string> = {
       'special-post': '스페셜', 'interview-news': '인터뷰', 'startup-topic': '토픽',
       'guide-startups': '가이드', 'announcement': '공지', 'general': '일반',
     };
     return map[cat] ?? cat;
+  };
+
+  const categoryColor = (cat: string) => {
+    const map: Record<string, string> = {
+      'interview-news': 'bg-purple-600/80 text-purple-100',
+      'special-post': 'bg-amber-600/80 text-amber-100',
+      'guide-startups': 'bg-emerald-600/80 text-emerald-100',
+      'startup-topic': 'bg-blue-600/80 text-blue-100',
+      'announcement': 'bg-slate-600/80 text-slate-100',
+      'general': 'bg-slate-700/80 text-slate-200',
+    };
+    return map[cat] ?? 'bg-slate-700/80 text-slate-200';
   };
 
   const fireEmoji = (articleId: string) => {
@@ -89,6 +102,8 @@ export default async function Home() {
     if (hours < 24) return `${hours}시간 전`;
     return `${Math.floor(hours / 24)}일 전`;
   };
+
+  const hasAnyContent = featuredArticles.length > 0 || briefArticles.length > 0;
 
   return (
     <div className="min-h-screen px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto flex flex-col gap-6">
@@ -113,7 +128,7 @@ export default async function Home() {
       {/* Tag Navigation */}
       <TagNav />
 
-      {articles.length === 0 ? (
+      {!hasAnyContent ? (
         <div className="bento-card p-12 flex flex-col items-center justify-center gap-4">
           <p className="text-5xl">📰</p>
           <h2 className="text-2xl font-bold">아직 등록된 기사가 없습니다</h2>
@@ -122,175 +137,250 @@ export default async function Home() {
         </div>
       ) : (
         <>
-          {/* === TIER 1: HEADLINE === */}
-          {headline && (
-            <Link
-              href={`/article/${headline.id}`}
-              className="bento-card p-0 flex flex-col md:flex-row overflow-hidden group hover:-translate-y-1 hover:border-brand-primary/50 transition-all duration-300 block"
-            >
-              {headline.og_image_url ? (
-                <img
-                  src={headline.og_image_url}
-                  alt={headline.title}
-                  className="w-full md:w-5/12 h-48 sm:h-56 md:h-auto object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-              ) : (
-                <div className="w-full md:w-5/12 h-48 sm:h-56 md:h-auto bg-gradient-to-br from-brand-primary/30 to-slate-800 flex items-center justify-center text-5xl">📰</div>
+          {/* ===== BENTO GRID ===== */}
+          {(heroArticle || gridArticles.length > 0) && (
+            <section aria-label="주요 기사" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 lg:auto-rows-[280px] gap-4">
+
+              {/* ── HERO: 2col × 2row ── */}
+              {heroArticle && (
+                <Link
+                  href={`/article/${heroArticle.id}`}
+                  className="relative block overflow-hidden rounded-2xl group md:col-span-2 lg:col-span-2 lg:row-span-2 min-h-[320px] lg:min-h-0"
+                >
+                  {heroArticle.og_image_url ? (
+                    <img
+                      src={heroArticle.og_image_url}
+                      alt={heroArticle.title}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-violet-900 via-slate-900 to-slate-800" />
+                  )}
+                  {/* Dark gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/10" />
+                  {/* Glassmorphism content */}
+                  <div className="relative z-10 flex flex-col justify-end h-full p-5 sm:p-8">
+                    <div className="flex gap-2 items-center mb-3 flex-wrap">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm ${categoryColor(heroArticle.category)}`}>
+                        {categoryLabel(heroArticle.category)}
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/10 text-white/80 backdrop-blur-sm border border-white/10">
+                        🔥 FEATURED
+                      </span>
+                      {fireEmoji(heroArticle.id)}
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight mb-3 group-hover:text-brand-primary transition-colors">
+                      {heroArticle.title}
+                    </h2>
+                    {(heroArticle.excerpt || heroArticle.summary_5lines) && (
+                      <p className="text-white/70 text-sm line-clamp-2 mb-3">
+                        {heroArticle.excerpt || heroArticle.summary_5lines?.split('\n')[0]?.replace(/^\d+\.\s*/, '')}
+                      </p>
+                    )}
+                    <span className="text-white/50 text-xs">
+                      {heroArticle.source_name} · {timeAgo(heroArticle.created_at)}
+                    </span>
+                  </div>
+                </Link>
               )}
-              <div className="p-5 sm:p-8 flex flex-col justify-center gap-3 md:w-7/12">
-                <div className="flex gap-2 items-center flex-wrap">
-                  <span className="px-2.5 py-0.5 bg-brand-primary text-white rounded-full text-xs font-bold">🔥 헤드라인</span>
-                  <span className="px-2 py-0.5 bg-white/10 rounded text-xs text-slate-400">{categoryLabel(headline.category)}</span>
-                  {fireEmoji(headline.id)}
-                </div>
-                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight group-hover:text-brand-primary transition-colors">
-                  {headline.title}
-                </h2>
-                {/* Show excerpt (RSS description) if available, else AI summary */}
-                {(headline.excerpt || headline.summary_5lines) && (
-                  <p className="text-slate-300 line-clamp-3 leading-relaxed text-sm sm:text-base">
-                    {headline.excerpt || headline.summary_5lines?.split('\n')[0]?.replace(/^\d+\.\s*/, '')}
-                  </p>
-                )}
-                <span className="text-xs text-slate-500">{timeAgo(headline.created_at)} · {headline.source_name}</span>
-              </div>
-            </Link>
-          )}
 
-          {/* === TIER 2: SUB-ARTICLES (Bento Grid) === */}
-          {subArticles.length > 0 && (
-            <section>
-              <h3 className="text-xl font-bold text-slate-100 pl-1 mb-4 flex items-center gap-2">
-                <span className="text-brand-primary">■</span> 주요 기사
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {subArticles.map((article) => (
-                  <Link
-                    key={article.id}
-                    href={`/article/${article.id}`}
-                    className="bento-card p-0 flex flex-col overflow-hidden hover:-translate-y-2 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:border-brand-primary/40 transition-all duration-300 group block h-full"
-                  >
-                    {/* Image Area */}
-                    <div className="relative h-44 sm:h-48 w-full overflow-hidden">
-                      {article.og_image_url ? (
-                        <img
-                          src={article.og_image_url}
-                          alt={article.title}
-                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        />
-                      ) : (
-                        <div className="h-full w-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-4xl">📰</div>
-                      )}
-                      
-                      {/* Gradient Overlay for Text Readability if we wanted text inside */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-transparent to-transparent opacity-60"></div>
-                      
-                      {/* Category Badge Floating */}
-                      <div className="absolute top-3 left-3 flex gap-2">
-                         <span className="px-2.5 py-1 backdrop-blur-md bg-black/40 border border-white/10 rounded-lg text-xs font-medium text-white shadow-sm">
-                           {categoryLabel(article.category)}
-                         </span>
-                      </div>
+              {/* ── CARD 0: 2col wide — right-top of hero ── */}
+              {gridArticles[0] && (
+                <Link
+                  href={`/article/${gridArticles[0].id}`}
+                  className="bento-card relative overflow-hidden group block lg:col-span-2 min-h-[200px] lg:min-h-0 hover:-translate-y-1 hover:shadow-2xl hover:border-brand-primary/40 transition-all duration-300"
+                >
+                  {gridArticles[0].og_image_url ? (
+                    <>
+                      <img
+                        src={gridArticles[0].og_image_url}
+                        alt={gridArticles[0].title}
+                        className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/60 to-transparent" />
+                    </>
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-violet-950/40 to-slate-900/90" />
+                  )}
+                  <div className="relative z-10 p-5 h-full flex flex-col justify-end">
+                    <span className={`self-start mb-2 px-2.5 py-0.5 rounded-lg text-xs font-bold ${categoryColor(gridArticles[0].category)}`}>
+                      {categoryLabel(gridArticles[0].category)}
+                    </span>
+                    <h3 className="font-bold text-lg sm:text-xl leading-snug text-slate-100 group-hover:text-brand-primary transition-colors line-clamp-2 mb-2">
+                      {gridArticles[0].title}
+                    </h3>
+                    {(gridArticles[0].excerpt || gridArticles[0].summary_5lines) && (
+                      <p className="text-slate-400 text-sm line-clamp-1 mb-2">
+                        {gridArticles[0].excerpt || gridArticles[0].summary_5lines?.split('\n')[0]?.replace(/^\d+\.\s*/, '')}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <span>{gridArticles[0].source_name}</span>
+                      <span>·</span>
+                      <span>{timeAgo(gridArticles[0].created_at)}</span>
+                      {fireEmoji(gridArticles[0].id)}
                     </div>
+                  </div>
+                </Link>
+              )}
 
-                    {/* Content Area */}
-                    <div className="p-5 flex flex-col gap-3 flex-1 bg-white/[0.02]">
-                      <h4 className="font-bold text-lg leading-snug group-hover:text-brand-primary transition-colors line-clamp-2 text-slate-100">
+              {/* ── CARDS 1 & 2: small — right-bottom of hero ── */}
+              {[gridArticles[1], gridArticles[2]].filter(Boolean).map((article) => (
+                <Link
+                  key={article.id}
+                  href={`/article/${article.id}`}
+                  className="bento-card relative overflow-hidden group block min-h-[160px] lg:min-h-0 hover:-translate-y-1 hover:shadow-xl hover:border-brand-primary/40 transition-all duration-300"
+                >
+                  {article.og_image_url ? (
+                    <>
+                      <img
+                        src={article.og_image_url}
+                        alt={article.title}
+                        className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 to-slate-900/50" />
+                    </>
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-slate-800/60 to-slate-900/80" />
+                  )}
+                  <div className="relative z-10 p-4 h-full flex flex-col justify-between">
+                    <span className={`self-start px-2 py-0.5 rounded text-xs font-bold ${categoryColor(article.category)}`}>
+                      {categoryLabel(article.category)}
+                    </span>
+                    <div>
+                      <h3 className="font-bold text-sm leading-snug text-slate-100 group-hover:text-brand-primary transition-colors line-clamp-3 mb-2">
                         {article.title}
-                      </h4>
-                      
-                      {/* Show excerpt if available, else AI summary snippets */}
-                      {(article.excerpt || article.summary_5lines) && (
-                        <div className="mt-2 text-sm text-slate-300 bg-black/20 rounded-xl p-3 border border-white/5 flex-1">
-                          {article.excerpt ? (
-                            <p className="line-clamp-3 leading-relaxed text-xs sm:text-sm">{article.excerpt}</p>
-                          ) : (
-                            <ul className="list-disc pl-4 space-y-1.5 marker:text-brand-primary/60">
-                              {article.summary_5lines!.split('\n').filter(Boolean).slice(0, 3).map((line: string, i: number) => (
-                                <li key={i} className="line-clamp-2 leading-relaxed text-xs sm:text-sm">
-                                  {line.replace(/^\d+\.\s*/, '').replace(/\*+/g, '')}
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Footer Info */}
-                      <div className="flex justify-between items-center text-xs text-slate-500 mt-3 pt-3 border-t border-white/5">
-                        <span className="font-medium text-slate-400">{article.source_name}</span>
-                        <div className="flex items-center gap-2">
-                           {fireEmoji(article.id)}
-                           <span>{timeAgo(article.created_at)}</span>
-                        </div>
+                      </h3>
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                        <span>{article.source_name}</span>
+                        <span>·</span>
+                        <span>{timeAgo(article.created_at)}</span>
+                        {fireEmoji(article.id)}
                       </div>
                     </div>
-                  </Link>
-                ))}
-              </div>
+                  </div>
+                </Link>
+              ))}
+
+              {/* ── CARDS 3 & 4: standard — third row ── */}
+              {[gridArticles[3], gridArticles[4]].filter(Boolean).map((article) => (
+                <Link
+                  key={article.id}
+                  href={`/article/${article.id}`}
+                  className="bento-card relative overflow-hidden group block min-h-[200px] lg:min-h-0 hover:-translate-y-1 hover:shadow-xl hover:border-brand-primary/40 transition-all duration-300"
+                >
+                  {article.og_image_url ? (
+                    <>
+                      <img
+                        src={article.og_image_url}
+                        alt={article.title}
+                        className="absolute inset-0 w-full h-full object-cover opacity-35 group-hover:opacity-45 transition-opacity duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/70 to-slate-900/10" />
+                    </>
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-violet-950/30 to-slate-900/90">
+                      <div className="absolute inset-0 flex items-center justify-center text-5xl opacity-20">
+                        {article.category === 'interview-news' ? '🎙️' : '📖'}
+                      </div>
+                    </div>
+                  )}
+                  <div className="relative z-10 p-4 h-full flex flex-col justify-between">
+                    <span className={`self-start px-2.5 py-0.5 rounded-lg text-xs font-bold backdrop-blur-sm ${categoryColor(article.category)}`}>
+                      {categoryLabel(article.category)}
+                    </span>
+                    <div>
+                      <h3 className="font-bold text-sm sm:text-base leading-snug text-slate-100 group-hover:text-brand-primary transition-colors line-clamp-3 mb-2">
+                        {article.title}
+                      </h3>
+                      {(article.excerpt || article.summary_5lines) && (
+                        <p className="text-slate-500 text-xs line-clamp-1 mb-1.5">
+                          {article.excerpt || article.summary_5lines?.split('\n')[0]?.replace(/^\d+\.\s*/, '')}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                        <span>{article.source_name}</span>
+                        <span>·</span>
+                        <span>{timeAgo(article.created_at)}</span>
+                        {fireEmoji(article.id)}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+
+              {/* ── CARD 5: 2col wide — third row end ── */}
+              {gridArticles[5] && (
+                <Link
+                  href={`/article/${gridArticles[5].id}`}
+                  className="bento-card relative overflow-hidden group block md:col-span-2 lg:col-span-2 min-h-[200px] lg:min-h-0 hover:-translate-y-1 hover:shadow-2xl hover:border-brand-primary/40 transition-all duration-300"
+                >
+                  {gridArticles[5].og_image_url ? (
+                    <>
+                      <img
+                        src={gridArticles[5].og_image_url}
+                        alt={gridArticles[5].title}
+                        className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/60 to-transparent" />
+                    </>
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-violet-950/40 to-slate-900/90" />
+                  )}
+                  <div className="relative z-10 p-5 h-full flex flex-col justify-end">
+                    <span className={`self-start mb-2 px-2.5 py-0.5 rounded-lg text-xs font-bold ${categoryColor(gridArticles[5].category)}`}>
+                      {categoryLabel(gridArticles[5].category)}
+                    </span>
+                    <h3 className="font-bold text-lg sm:text-xl leading-snug text-slate-100 group-hover:text-brand-primary transition-colors line-clamp-2 mb-2">
+                      {gridArticles[5].title}
+                    </h3>
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <span>{gridArticles[5].source_name}</span>
+                      <span>·</span>
+                      <span>{timeAgo(gridArticles[5].created_at)}</span>
+                      {fireEmoji(gridArticles[5].id)}
+                    </div>
+                  </div>
+                </Link>
+              )}
             </section>
           )}
 
-          {/* === TIER 3: BRIEF / INFO (Bento List) === */}
+          {/* ===== NEWS BRIEFING ===== */}
           {briefArticles.length > 0 && (
             <section>
               <h3 className="text-xl font-bold text-slate-100 pl-1 mb-4 flex items-center gap-2">
-                <span className="text-brand-success">⚡</span> 단신 · 속보
+                <span className="text-brand-success">⚡</span> 뉴스 브리핑
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {briefArticles.map((article) => (
-                  <Link
-                    key={article.id}
-                    href={`/article/${article.id}`}
-                    className="bento-card px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 hover:-translate-y-1 hover:border-brand-primary/30 transition-all duration-200 group block"
-                  >
-                    <div className="flex items-center gap-3 w-full sm:w-auto flex-1">
-                      <span className="px-2 py-1 bg-white/5 border border-white/10 rounded-md text-xs font-medium text-slate-300 flex-shrink-0">
+              <div className="bento-card p-0 divide-y divide-white/5 overflow-hidden">
+                {briefArticles.map((article) => {
+                  const outUrl = (article as any).external_url ?? null;
+                  const href = outUrl ?? `/article/${article.id}`;
+                  const isExternal = !!outUrl;
+                  return (
+                    <a
+                      key={article.id}
+                      href={href}
+                      target={isExternal ? '_blank' : undefined}
+                      rel={isExternal ? 'noopener noreferrer' : undefined}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors group"
+                    >
+                      <span className={`flex-shrink-0 px-2 py-0.5 rounded text-xs font-medium border border-white/10 ${categoryColor(article.category)}`}>
                         {categoryLabel(article.category)}
                       </span>
-                      <h4 className="font-medium text-sm sm:text-base text-slate-200 group-hover:text-brand-primary transition-colors flex-1 line-clamp-1">
+                      <span className="flex-1 text-sm text-slate-200 group-hover:text-brand-primary transition-colors line-clamp-1 min-w-0">
                         {article.title}
-                      </h4>
-                    </div>
-                    
-                    <div className="flex items-center gap-4 flex-shrink-0 w-full sm:w-auto justify-between sm:justify-end mt-2 sm:mt-0 text-xs text-slate-500">
-                      <span className="font-medium text-slate-400">{article.source_name}</span>
-                      <div className="flex items-center gap-2">
-                         {fireEmoji(article.id)}
-                         <span>{timeAgo(article.created_at)}</span>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* === LATEST COMMENTS FEED === */}
-          {latestComments && latestComments.length > 0 && (
-            <section className="mt-2">
-              <h3 className="text-base font-bold text-slate-300 mb-3">💬 최신 댓글</h3>
-              <div className="bento-card p-0 divide-y divide-white/5 overflow-hidden">
-                {latestComments.map((comment: any) => {
-                  const articleTitle = Array.isArray(comment.articles)
-                    ? comment.articles[0]?.title
-                    : comment.articles?.title ?? '기사';
-                  return (
-                    <Link
-                      key={comment.id}
-                      href={`/article/${comment.article_id}`}
-                      className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors block"
-                    >
-                      <span className="flex-shrink-0 text-sm mt-0.5">
-                        {comment.user_id ? '👤' : '🎭'}
                       </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-slate-200 line-clamp-1">{comment.content}</p>
-                        <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
-                          {comment.anonymous_name ?? '회원'} · {articleTitle} · {timeAgo(comment.created_at)}
-                        </p>
+                      <div className="flex items-center gap-2 flex-shrink-0 text-xs text-slate-500">
+                        <span className="hidden sm:inline font-medium text-slate-400">{article.source_name}</span>
+                        <span>{timeAgo(article.created_at)}</span>
+                        {isExternal && (
+                          <svg className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        )}
                       </div>
-                    </Link>
+                    </a>
                   );
                 })}
               </div>

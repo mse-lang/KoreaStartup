@@ -3,7 +3,7 @@
 @theme {
   --font-sans: "Pretendard Variable", pretendard, -apple-system, blinkmacsystemfont, system-ui, roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
 
-  --color-brand-primary: #3b82f6;
+  --color-brand-primary: #8b5cf6;
   --color-brand-secondary: #64748b;
   --color-brand-success: #22c55e;
   --color-brand-error: #ef4444;
@@ -47,7 +47,7 @@
 
 /* --- Buttons --- */
 [data-theme="light"] .btn-primary {
-  background-color: #2563eb;
+  background-color: #7c3aed;
 }
 
 /* --- Text color overrides (dark-on-light) --- */
@@ -125,8 +125,8 @@
   color: #1e293b;
 }
 [data-theme="light"] .prose-article blockquote {
-  border-left-color: #3b82f6;
-  background-color: rgba(59, 130, 246, 0.05);
+  border-left-color: #8b5cf6;
+  background-color: rgba(139, 92, 246, 0.05);
 }
 
 /* --- Header nav buttons --- */
@@ -184,10 +184,10 @@
 
 /* --- Badge / pill backgrounds --- */
 [data-theme="light"] .bg-brand-primary\/20 {
-  background-color: rgba(59, 130, 246, 0.1) !important;
+  background-color: rgba(139, 92, 246, 0.1) !important;
 }
 [data-theme="light"] .bg-brand-primary\/10 {
-  background-color: rgba(59, 130, 246, 0.06) !important;
+  background-color: rgba(139, 92, 246, 0.06) !important;
 }
 
 /* --- Yellow community tags stay readable --- */
@@ -214,8 +214,8 @@
   color: #334155 !important;
 }
 [data-theme="light"] .tag-nav-scroll a:hover {
-  background-color: rgba(59, 130, 246, 0.1) !important;
-  color: #1d4ed8 !important;
+  background-color: rgba(139, 92, 246, 0.1) !important;
+  color: #6d28d9 !important;
 }
 
 /* --- Category badges on images (スペシャル etc.) --- */
@@ -227,12 +227,12 @@
 
 /* --- brand-primary/30 pill background --- */
 [data-theme="light"] .bg-brand-primary\/30 {
-  background-color: rgba(59, 130, 246, 0.15) !important;
+  background-color: rgba(139, 92, 246, 0.15) !important;
 }
 
 /* --- Specific text classes used in components --- */
 [data-theme="light"] .text-brand-primary {
-  color: #1d4ed8 !important;
+  color: #6d28d9 !important;
 }
 
 /* --- Gradient card overlays (bottom text on image cards) --- */
@@ -243,7 +243,7 @@
 /* --- Link hover in cards --- */
 [data-theme="light"] a:hover h2,
 [data-theme="light"] a:hover h3 {
-  color: #1d4ed8;
+  color: #6d28d9;
 }
 
 /* --- Footer and newsletter section --- */
@@ -326,7 +326,7 @@
   }
   
   .btn-primary:hover {
-    background-color: #2563eb;
+    background-color: #7c3aed;
   }
 
   /* Article prose styling */
@@ -340,11 +340,11 @@
   }
 
   .prose-article blockquote {
-    border-left: 3px solid #3b82f6;
+    border-left: 3px solid #8b5cf6;
     padding: 0.75rem 1rem;
     margin: 1.5rem 0;
     border-radius: 0 0.5rem 0.5rem 0;
-    background-color: rgba(59, 130, 246, 0.08);
+    background-color: rgba(139, 92, 246, 0.08);
     font-style: italic;
   }
 
