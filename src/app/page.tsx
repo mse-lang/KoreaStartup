@@ -22,11 +22,12 @@ export default async function Home() {
     .order('created_at', { ascending: false })
     .limit(12);
 
-  // 비벤처스퀘어 기사도 최신 6개 별도 조회 (그리드 앞 2개용)
+  // 비벤처스퀘어 기사도 최신 6개 별도 조회 (그리드 앞 2개용, 긱뉴스 제외)
   const { data: nonVSRaw } = await supabase
     .from('articles')
     .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at, source_url')
     .neq('source_name', '벤처스퀘어')
+    .neq('source_name', 'GeekNews')
     .order('created_at', { ascending: false })
     .limit(6);
 
