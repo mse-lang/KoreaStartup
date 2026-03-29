@@ -14,7 +14,7 @@ export default async function Home() {
   // === PRIMARY: interview-news, guide-startups, special-post (최신 12개) ===
   const { data: featuredRaw } = await supabase
     .from('articles')
-    .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at, external_url')
+    .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at, source_url')
     .in('category', ['interview-news', 'guide-startups', 'special-post'])
     .order('created_at', { ascending: false })
     .limit(12);
@@ -24,7 +24,7 @@ export default async function Home() {
   if (featuredArticles.length < 3) {
     const { data: fallback } = await supabase
       .from('articles')
-      .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at, external_url')
+      .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at, source_url')
       .in('category', ['interview-news', 'guide-startups', 'special-post'])
       .order('created_at', { ascending: false })
       .limit(12);
@@ -34,7 +34,7 @@ export default async function Home() {
   // === SECONDARY: general, announcement, startup-topic (최신 15개) ===
   const { data: briefRaw } = await supabase
     .from('articles')
-    .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at, external_url')
+    .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at, source_url')
     .in('category', ['general', 'announcement', 'startup-topic'])
     .order('created_at', { ascending: false })
     .limit(15);
@@ -361,7 +361,7 @@ export default async function Home() {
               </h3>
               <div className="bento-card p-0 divide-y divide-white/5 overflow-hidden">
                 {briefArticles.map((article) => {
-                  const outUrl = (article as any).external_url ?? null;
+                  const outUrl = (article as any).source_url ?? null;
                   const href = outUrl ?? `/article/${article.id}`;
                   const isExternal = !!outUrl;
                   return (
