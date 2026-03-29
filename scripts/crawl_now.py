@@ -30,7 +30,7 @@ CATEGORIES = [
     {"name": "eo-planet",      "feed": "https://eopla.net/feed",                                      "source": "EO",          "max": 5},
     {"name": "itdonga",        "feed": "https://it.donga.com/feeds/rss/",                             "source": "IT동아",      "max": 3},
     {"name": "geeknews",       "feed": "https://news.hada.io/rss/news",                               "source": "GeekNews",    "max": 3},
-    {"name": "platum-news",    "feed": "https://platum.kr/feed",                                      "source": "플래텀",      "max": 5},
+
 ]
 
 def strip_html(text):
