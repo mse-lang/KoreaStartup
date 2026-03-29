@@ -173,8 +173,8 @@ export default async function Home() {
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-violet-900 via-slate-900 to-slate-800" />
                   )}
-                  {/* Dark gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/10" />
+                  {/* Dark gradient overlay — bottom 60% only for text readability */}
+                  <div className="absolute inset-0 card-overlay bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
                   {/* Glassmorphism content */}
                   <div className="relative z-10 flex flex-col justify-end h-full p-5 sm:p-8">
                     <div className="flex gap-2 items-center mb-3 flex-wrap">
@@ -212,9 +212,9 @@ export default async function Home() {
                       <img
                         src={gridArticles[0].og_image_url}
                         alt={gridArticles[0].title}
-                        className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity duration-300"
+                        className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-70 transition-opacity duration-300"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/60 to-transparent" />
+                      <div className="absolute inset-0 card-overlay bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                     </>
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-violet-950/40 to-slate-900/90" />
@@ -253,9 +253,9 @@ export default async function Home() {
                       <img
                         src={article.og_image_url}
                         alt={article.title}
-                        className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity duration-300"
+                        className="absolute inset-0 w-full h-full object-cover opacity-55 group-hover:opacity-65 transition-opacity duration-300"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 to-slate-900/50" />
+                      <div className="absolute inset-0 card-overlay bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                     </>
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-slate-800/60 to-slate-900/80" />
@@ -291,9 +291,9 @@ export default async function Home() {
                       <img
                         src={article.og_image_url}
                         alt={article.title}
-                        className="absolute inset-0 w-full h-full object-cover opacity-35 group-hover:opacity-45 transition-opacity duration-300"
+                        className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-70 transition-opacity duration-300"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/70 to-slate-900/10" />
+                      <div className="absolute inset-0 card-overlay bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
                     </>
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-violet-950/30 to-slate-900/90">
@@ -337,9 +337,9 @@ export default async function Home() {
                       <img
                         src={gridArticles[5].og_image_url}
                         alt={gridArticles[5].title}
-                        className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity duration-300"
+                        className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-70 transition-opacity duration-300"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/60 to-transparent" />
+                      <div className="absolute inset-0 card-overlay bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                     </>
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-violet-950/40 to-slate-900/90" />
