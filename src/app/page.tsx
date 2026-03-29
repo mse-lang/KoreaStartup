@@ -41,17 +41,24 @@ export default async function Home() {
 
   const briefArticles = briefRaw ?? [];
 
-  // Hero: interview-news or special-post first, then any featured
+  // Hero: 반드시 interview-news 우선
   const heroArticle =
     featuredArticles.find(a => a.category === 'interview-news') ??
     featuredArticles.find(a => a.category === 'special-post') ??
     featuredArticles[0] ??
     null;
 
-  // Grid: remaining featured (excluding hero), max 6
-  const gridArticles = featuredArticles
-    .filter(a => a.id !== heroArticle?.id)
-    .slice(0, 6);
+  // Grid 앞 2개: 반드시 interview-news (hero 제외)
+  const interviewArticles = featuredArticles
+    .filter(a => a.category === 'interview-news' && a.id !== heroArticle?.id);
+  const otherFeatured = featuredArticles
+    .filter(a => a.category !== 'interview-news' && a.id !== heroArticle?.id);
+
+  // 앞 2개는 interview-news, 나머지는 other featured로 채움
+  const gridArticles = [
+    ...interviewArticles.slice(0, 2),
+    ...otherFeatured,
+  ].slice(0, 6);
 
   // Get comment counts
   const allIds = [...featuredArticles, ...briefArticles].map(a => a.id);

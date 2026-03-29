@@ -1,12 +1,59 @@
 {
-  "project.level": "Dynamic",
-  "phase": "plan",
-  "current_sprint": "Setup Pipeline",
-  "pdca": "ACT",
+  "version": "2.0",
+  "lastUpdated": "2026-03-28T13:24:16.023Z",
+  "activeFeatures": [
+    "0",
+    "1",
+    "2",
+    "KoreaStartup",
+    "[id]"
+  ],
+  "primaryFeature": "KoreaStartup",
   "features": [
     "authentication",
     "payment",
     "crawling_pipeline"
   ],
-  "last_updated": "2026-03-15T14:40:00Z"
+  "pipeline": {
+    "currentPhase": 1,
+    "level": "Dynamic",
+    "phaseHistory": []
+  },
+  "session": {
+    "startedAt": "2026-03-25T12:28:44.202Z",
+    "onboardingCompleted": false,
+    "lastActivity": "2026-03-28T13:24:16.023Z"
+  },
+  "history": [
+    {
+      "timestamp": "2026-03-25T12:30:11.654Z",
+      "feature": "KoreaStartup",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-28T13:23:39.440Z",
+      "feature": "KoreaStartup",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-28T13:23:56.469Z",
+      "feature": "KoreaStartup",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-28T13:24:09.104Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-28T13:24:16.023Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    }
+  ]
 }
