@@ -33,6 +33,38 @@ CATEGORIES = [
 
 ]
 
+def extract_image_from_url(url):
+    """기사 URL에서 og:image 또는 첫 번째 img 태그 추출"""
+    try:
+        res = requests.get(url, timeout=8, headers={
+            "User-Agent": "Mozilla/5.0 (compatible; KoreaStartupBot/1.0)"
+        })
+        if res.status_code != 200:
+            return None
+        html = res.text
+        # og:image 우선
+        og = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', html)
+        if og:
+            return og.group(1)
+        og2 = re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']', html)
+        if og2:
+            return og2.group(1)
+        # 첫 번째 img 태그
+        img = re.search(r'<img[^>]+src=["\']([^"\']+\.(jpg|jpeg|png|webp))["\']', html, re.IGNORECASE)
+        if img:
+            src = img.group(1)
+            if src.startswith('//'):
+                src = 'https:' + src
+            elif src.startswith('/'):
+                from urllib.parse import urlparse
+                parsed = urlparse(url)
+                src = f"{parsed.scheme}://{parsed.netloc}{src}"
+            return src
+    except Exception:
+        pass
+    return None
+
+
 def strip_html(text):
     text = re.sub(r'<br\s*/?>', '\n', text, flags=re.IGNORECASE)
     text = re.sub(r'</p>', '\n\n', text, flags=re.IGNORECASE)
@@ -120,15 +152,29 @@ def main():
                     item.get("content", [{}])[0].get("value", "") or ""
                 )[:500]
                 
-                # 이미지 추출
+                # 이미지 추출 (RSS → content img → 기사 페이지 순)
                 og_image = None
+                # 1. media:content
                 if hasattr(item, "media_content") and item.media_content:
                     og_image = item.media_content[0].get("url")
+                # 2. enclosures
+                if not og_image and item.get("enclosures"):
+                    for enc in item.enclosures:
+                        if enc.get("type", "").startswith("image"):
+                            og_image = enc.get("href") or enc.get("url")
+                            break
+                # 3. content 내 첫 번째 img
                 if not og_image:
-                    img_match = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', 
-                                          item.get("content", [{}])[0].get("value", "") if item.get("content") else "")
+                    content_html = item.get("content", [{}])[0].get("value", "") if item.get("content") else ""
+                    content_html = content_html or item.get("summary", "")
+                    img_match = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', content_html)
                     if img_match:
                         og_image = img_match.group(1)
+                # 4. 기사 페이지에서 직접 추출 (og:image 또는 첫 img)
+                if not og_image and url:
+                    og_image = extract_image_from_url(url)
+                    if og_image:
+                        print(f"  🖼️  페이지에서 이미지 추출: {og_image[:60]}")
                 
                 # 날짜
                 pub_date = None

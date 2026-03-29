@@ -72,13 +72,50 @@ function stripHtml(html: string): string {
 
 // Extract first image from HTML content or media:content
 function extractImage(item: any): string | null {
-  // Try media:content first
+  // 1. media:content
   if (item.media?.['$']?.url) return item.media['$'].url
 
-  // Try to find <img> in content
-  const content = item.contentEncoded || item.content || ''
+  // 2. enclosures
+  if (item.enclosures?.length) {
+    for (const enc of item.enclosures) {
+      if (enc.type?.startsWith('image')) return enc.url ?? enc.href ?? null
+    }
+  }
+
+  // 3. <img> in content/contentEncoded/summary
+  const content = item.contentEncoded || item.content || item.contentSnippet || ''
   const imgMatch = content.match(/<img[^>]+src=["']([^"']+)["']/i)
-  return imgMatch?.[1] ?? null
+  if (imgMatch?.[1]) return imgMatch[1]
+
+  return null
+}
+
+// Fetch og:image or first img from article page as fallback
+async function fetchPageImage(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; KoreaStartupBot/1.0)' },
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!res.ok) return null
+    const html = await res.text()
+    // og:image
+    const og = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+      ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
+    if (og?.[1]) return og[1]
+    // first img
+    const img = html.match(/<img[^>]+src=["']([^"']+\.(?:jpg|jpeg|png|webp))["']/i)
+    if (img?.[1]) {
+      let src = img[1]
+      if (src.startsWith('//')) src = 'https:' + src
+      else if (src.startsWith('/')) {
+        const u = new URL(url)
+        src = `${u.protocol}//${u.host}${src}`
+      }
+      return src
+    }
+  } catch {}
+  return null
 }
 
 // Clean text: strip metadata lines injected by Jina Reader / RSS, decode entities
@@ -366,7 +403,11 @@ export async function GET(request: Request) {
         contentRaw = optimizeHeadings(contentRaw)
         contentRaw = addComplianceFooter(contentRaw, category.source, url)
 
-        const ogImage = extractImage(item)
+        let ogImage = extractImage(item)
+        // 이미지 없으면 기사 페이지에서 직접 추출
+        if (!ogImage && url) {
+          ogImage = await fetchPageImage(url)
+        }
         // Use RSS description as fallback for summary
         const rssDescription = stripHtml(item.contentSnippet || item.content || '').substring(0, 500)
         const summary = await generateSummaryWithAI(title, contentRaw, rssDescription)
