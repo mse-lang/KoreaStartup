@@ -23,12 +23,16 @@ def fetch_page_image(url):
             return None
         html = res.text
         # og:image 우선
-        og = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', html)
-        if og:
-            return og.group(1)
-        og2 = re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']', html)
-        if og2:
-            return og2.group(1)
+        og = re.search(r'property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', html)
+        og2 = re.search(r'content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']', html)
+        img_url = (og or og2)
+        if img_url:
+            src = img_url.group(1)
+            if src.startswith('//'):
+                src = 'https:' + src
+            elif src.startswith('/'):
+                src = f"{urlparse(url).scheme}://{urlparse(url).netloc}{src}"
+            return src
         # 첫 번째 img
         img = re.search(r'<img[^>]+src=["\']([^"\']+\.(?:jpg|jpeg|png|webp))["\']', html, re.IGNORECASE)
         if img:
