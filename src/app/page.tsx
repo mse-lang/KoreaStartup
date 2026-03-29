@@ -11,39 +11,32 @@ export default async function Home() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // === PRIMARY: 모든 카테고리에서 최신 20개 (interview-news, special-post, guide-startups 우선) ===
-  const FEATURED_CATEGORIES = ['interview-news', 'guide-startups', 'special-post'];
-  const BRIEF_CATEGORIES = ['general', 'announcement', 'startup-topic', 'etnews-startup', 'spot_news', 'platum-news', 'startup-topic', 'hankyung-it', 'mk-it', 'fnnews-it', 'chosunbiz-it', 'eo-planet', 'itdonga', 'zdnet-korea', 'geeknews', 'bloter', 'kstartup-news', 'bizinfo-support', 'mss-news'];
-
-  const { data: featuredRaw } = await supabase
+  // === HERO 후보: 벤처스퀘어 interview-news + special-post, 썸네일 필수 ===
+  const { data: vsHeroRaw } = await supabase
     .from('articles')
     .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at, source_url')
-    .in('category', FEATURED_CATEGORIES)
+    .eq('source_name', '벤처스퀘어')
+    .in('category', ['interview-news', 'special-post'])
+    .not('og_image_url', 'is', null)
     .order('created_at', { ascending: false })
-    .limit(12);
+    .limit(10);
 
-  // 비벤처스퀘어 기사도 최신 6개 별도 조회 (그리드 앞 2개용, 긱뉴스 제외)
+  // === 그리드용: 타 매체 interview-news 카테고리, 썸네일 필수, 긱뉴스 제외 ===
   const { data: nonVSRaw } = await supabase
     .from('articles')
     .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at, source_url')
     .neq('source_name', '벤처스퀘어')
     .neq('source_name', 'GeekNews')
+    .eq('category', 'interview-news')
+    .not('og_image_url', 'is', null)
     .order('created_at', { ascending: false })
-    .limit(6);
+    .limit(10);
 
-  // featured + nonVS 합치기 (중복 제거)
-  let featuredArticles = featuredRaw ?? [];
-  const nonVSExtra = (nonVSRaw ?? []).filter(a => !featuredArticles.find(f => f.id === a.id));
-  featuredArticles = [...featuredArticles, ...nonVSExtra];
+  // 그리드 나머지용: 벤처스퀘어 interview+special, 썸네일 필수 (hero 제외)
+  const vsHeroArticles = vsHeroRaw ?? [];
+  const nonVSInterviewArticles = nonVSRaw ?? [];
 
-  if (featuredArticles.length < 3) {
-    const { data: fallback } = await supabase
-      .from('articles')
-      .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at, source_url')
-      .order('created_at', { ascending: false })
-      .limit(12);
-    featuredArticles = fallback ?? [];
-  }
+  let featuredArticles = [...vsHeroArticles, ...nonVSInterviewArticles.filter(a => !vsHeroArticles.find(v => v.id === a.id))];
 
   // === SECONDARY: 나머지 카테고리 최신 20개 ===
   const { data: briefRaw } = await supabase
@@ -64,34 +57,31 @@ export default async function Home() {
     briefArticles = (briefFallback ?? []).filter(a => !featuredArticles.find(f => f.id === a.id));
   }
 
-  // Hero: interview-news 우선, 없으면 special-post, 없으면 아무거나
+  // Hero: 벤처스퀘어 interview-news 우선, 없으면 special-post
   const heroArticle =
-    featuredArticles.find(a => a.category === 'interview-news') ??
-    featuredArticles.find(a => a.category === 'special-post') ??
-    featuredArticles[0] ??
+    vsHeroArticles.find(a => a.category === 'interview-news') ??
+    vsHeroArticles.find(a => a.category === 'special-post') ??
+    vsHeroArticles[0] ??
     null;
 
-  // Grid 앞 2개: 각각 다른 매체의 비벤처스퀘어 기사
-  const nonVSArticles = featuredArticles
-    .filter(a => a.source_name !== '벤처스퀘어' && a.id !== heroArticle?.id);
-  const vsArticles = featuredArticles
-    .filter(a => a.source_name === '벤처스퀘어' && a.id !== heroArticle?.id);
-
-  // 서로 다른 매체로 앞 2개 선택
-  const pickedNonVS: typeof nonVSArticles = [];
+  // Grid 앞 2개: 타 매체 interview-news, 각각 다른 매체
+  const pickedNonVS: typeof nonVSInterviewArticles = [];
   const usedSources = new Set<string>();
-  for (const a of nonVSArticles) {
+  for (const a of nonVSInterviewArticles) {
     if (!usedSources.has(a.source_name)) {
       pickedNonVS.push(a);
       usedSources.add(a.source_name);
     }
     if (pickedNonVS.length >= 2) break;
   }
-  const remainingNonVS = nonVSArticles.filter(a => !pickedNonVS.find(p => p.id === a.id));
+
+  // Grid 나머지: 벤처스퀘어 interview+special (hero 제외)
+  const vsGridArticles = vsHeroArticles.filter(a => a.id !== heroArticle?.id);
+  const remainingNonVS = nonVSInterviewArticles.filter(a => !pickedNonVS.find(p => p.id === a.id));
 
   const gridArticles = [
     ...pickedNonVS,
-    ...vsArticles,
+    ...vsGridArticles,
     ...remainingNonVS,
   ].slice(0, 6);
 
