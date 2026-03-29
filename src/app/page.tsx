@@ -183,7 +183,7 @@ export default async function Home() {
                     <img
                       src={heroArticle.og_image_url}
                       alt={heroArticle.title}
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      className="absolute inset-0 w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
                     />
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-violet-900 via-slate-900 to-slate-800" />
@@ -227,7 +227,7 @@ export default async function Home() {
                       <img
                         src={gridArticles[0].og_image_url}
                         alt={gridArticles[0].title}
-                        className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-70 transition-opacity duration-300"
+                        className="absolute inset-0 w-full h-full object-cover object-top opacity-60 group-hover:opacity-70 transition-opacity duration-300"
                       />
                       <div className="absolute inset-0 card-overlay bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                     </>
@@ -266,7 +266,7 @@ export default async function Home() {
                       <img
                         src={article.og_image_url}
                         alt={article.title}
-                        className="absolute inset-0 w-full h-full object-cover opacity-55 group-hover:opacity-65 transition-opacity duration-300"
+                        className="absolute inset-0 w-full h-full object-cover object-top opacity-55 group-hover:opacity-65 transition-opacity duration-300"
                       />
                       <div className="absolute inset-0 card-overlay bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                     </>
@@ -302,7 +302,7 @@ export default async function Home() {
                       <img
                         src={article.og_image_url}
                         alt={article.title}
-                        className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-70 transition-opacity duration-300"
+                        className="absolute inset-0 w-full h-full object-cover object-top opacity-60 group-hover:opacity-70 transition-opacity duration-300"
                       />
                       <div className="absolute inset-0 card-overlay bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
                     </>
@@ -346,7 +346,7 @@ export default async function Home() {
                       <img
                         src={gridArticles[5].og_image_url}
                         alt={gridArticles[5].title}
-                        className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-70 transition-opacity duration-300"
+                        className="absolute inset-0 w-full h-full object-cover object-top opacity-60 group-hover:opacity-70 transition-opacity duration-300"
                       />
                       <div className="absolute inset-0 card-overlay bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                     </>
