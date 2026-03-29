@@ -70,17 +70,28 @@ export default async function Home() {
     featuredArticles[0] ??
     null;
 
-  // Grid 앞 2개: 벤처스퀘어가 아닌 매체 기사 우선, 그 후 나머지로 채움
+  // Grid 앞 2개: 각각 다른 매체의 비벤처스퀘어 기사
   const nonVSArticles = featuredArticles
     .filter(a => a.source_name !== '벤처스퀘어' && a.id !== heroArticle?.id);
   const vsArticles = featuredArticles
     .filter(a => a.source_name === '벤처스퀘어' && a.id !== heroArticle?.id);
 
-  // nonVS로 앞 2개 채우고, 부족하면 VS로 채움
+  // 서로 다른 매체로 앞 2개 선택
+  const pickedNonVS: typeof nonVSArticles = [];
+  const usedSources = new Set<string>();
+  for (const a of nonVSArticles) {
+    if (!usedSources.has(a.source_name)) {
+      pickedNonVS.push(a);
+      usedSources.add(a.source_name);
+    }
+    if (pickedNonVS.length >= 2) break;
+  }
+  const remainingNonVS = nonVSArticles.filter(a => !pickedNonVS.find(p => p.id === a.id));
+
   const gridArticles = [
-    ...nonVSArticles.slice(0, 2),
+    ...pickedNonVS,
     ...vsArticles,
-    ...nonVSArticles.slice(2),
+    ...remainingNonVS,
   ].slice(0, 6);
 
   // Get comment counts
@@ -245,8 +256,6 @@ export default async function Home() {
                       </p>
                     )}
                     <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <span>{gridArticles[0].source_name}</span>
-                      <span>·</span>
                       <span>{timeAgo(gridArticles[0].created_at)}</span>
                       {fireEmoji(gridArticles[0].id)}
                     </div>
@@ -282,8 +291,6 @@ export default async function Home() {
                         {article.title}
                       </h3>
                       <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                        <span>{article.source_name}</span>
-                        <span>·</span>
                         <span>{timeAgo(article.created_at)}</span>
                         {fireEmoji(article.id)}
                       </div>
@@ -329,8 +336,6 @@ export default async function Home() {
                         </p>
                       )}
                       <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                        <span>{article.source_name}</span>
-                        <span>·</span>
                         <span>{timeAgo(article.created_at)}</span>
                         {fireEmoji(article.id)}
                       </div>
@@ -365,8 +370,6 @@ export default async function Home() {
                       {gridArticles[5].title}
                     </h3>
                     <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <span>{gridArticles[5].source_name}</span>
-                      <span>·</span>
                       <span>{timeAgo(gridArticles[5].created_at)}</span>
                       {fireEmoji(gridArticles[5].id)}
                     </div>
