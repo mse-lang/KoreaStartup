@@ -22,8 +22,19 @@ export default async function Home() {
     .order('created_at', { ascending: false })
     .limit(12);
 
-  // Fallback: if not enough featured, pull from ALL categories
+  // 비벤처스퀘어 기사도 최신 6개 별도 조회 (그리드 앞 2개용)
+  const { data: nonVSRaw } = await supabase
+    .from('articles')
+    .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at, source_url')
+    .neq('source_name', '벤처스퀘어')
+    .order('created_at', { ascending: false })
+    .limit(6);
+
+  // featured + nonVS 합치기 (중복 제거)
   let featuredArticles = featuredRaw ?? [];
+  const nonVSExtra = (nonVSRaw ?? []).filter(a => !featuredArticles.find(f => f.id === a.id));
+  featuredArticles = [...featuredArticles, ...nonVSExtra];
+
   if (featuredArticles.length < 3) {
     const { data: fallback } = await supabase
       .from('articles')
@@ -59,15 +70,17 @@ export default async function Home() {
     featuredArticles[0] ??
     null;
 
-  // Grid 앞 2개: interview-news (hero 제외), 나머지로 채움
-  const interviewArticles = featuredArticles
-    .filter(a => a.category === 'interview-news' && a.id !== heroArticle?.id);
-  const otherFeatured = featuredArticles
-    .filter(a => a.category !== 'interview-news' && a.id !== heroArticle?.id);
+  // Grid 앞 2개: 벤처스퀘어가 아닌 매체 기사 우선, 그 후 나머지로 채움
+  const nonVSArticles = featuredArticles
+    .filter(a => a.source_name !== '벤처스퀘어' && a.id !== heroArticle?.id);
+  const vsArticles = featuredArticles
+    .filter(a => a.source_name === '벤처스퀘어' && a.id !== heroArticle?.id);
 
+  // nonVS로 앞 2개 채우고, 부족하면 VS로 채움
   const gridArticles = [
-    ...interviewArticles.slice(0, 2),
-    ...otherFeatured,
+    ...nonVSArticles.slice(0, 2),
+    ...vsArticles,
+    ...nonVSArticles.slice(2),
   ].slice(0, 6);
 
   // Get comment counts
@@ -195,7 +208,7 @@ export default async function Home() {
                       </p>
                     )}
                     <span className="text-white/50 text-xs">
-                      {heroArticle.source_name} · {timeAgo(heroArticle.created_at)}
+                      {timeAgo(heroArticle.created_at)}
                     </span>
                   </div>
                 </Link>
