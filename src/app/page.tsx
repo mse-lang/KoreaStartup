@@ -11,50 +11,60 @@ export default async function Home() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // === PRIMARY: interview-news, guide-startups, special-post (최신 12개) ===
+  // === PRIMARY: 모든 카테고리에서 최신 20개 (interview-news, special-post, guide-startups 우선) ===
+  const FEATURED_CATEGORIES = ['interview-news', 'guide-startups', 'special-post'];
+  const BRIEF_CATEGORIES = ['general', 'announcement', 'startup-topic', 'etnews-startup', 'spot_news', 'platum-news', 'startup-topic', 'hankyung-it', 'mk-it', 'fnnews-it', 'chosunbiz-it', 'eo-planet', 'itdonga', 'zdnet-korea', 'geeknews', 'bloter', 'kstartup-news', 'bizinfo-support', 'mss-news'];
+
   const { data: featuredRaw } = await supabase
     .from('articles')
     .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at, source_url')
-    .in('category', ['interview-news', 'guide-startups', 'special-post'])
+    .in('category', FEATURED_CATEGORIES)
     .order('created_at', { ascending: false })
     .limit(12);
 
-  // Fallback if not enough featured articles
+  // Fallback: if not enough featured, pull from ALL categories
   let featuredArticles = featuredRaw ?? [];
   if (featuredArticles.length < 3) {
     const { data: fallback } = await supabase
       .from('articles')
       .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at, source_url')
-      .in('category', ['interview-news', 'guide-startups', 'special-post'])
       .order('created_at', { ascending: false })
       .limit(12);
     featuredArticles = fallback ?? [];
   }
 
-  // === SECONDARY: general, announcement, startup-topic (최신 15개) ===
+  // === SECONDARY: 나머지 카테고리 최신 20개 ===
   const { data: briefRaw } = await supabase
     .from('articles')
     .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at, source_url')
-    .in('category', ['general', 'announcement', 'startup-topic'])
+    .not('category', 'in', `(${FEATURED_CATEGORIES.map(c => `"${c}"`).join(',')})`)
     .order('created_at', { ascending: false })
-    .limit(15);
+    .limit(20);
 
-  const briefArticles = briefRaw ?? [];
+  // Fallback: if no brief articles, pull all
+  let briefArticles = briefRaw ?? [];
+  if (briefArticles.length === 0) {
+    const { data: briefFallback } = await supabase
+      .from('articles')
+      .select('id, title, source_name, summary_5lines, excerpt, og_image_url, category, published_at, created_at, source_url')
+      .order('created_at', { ascending: false })
+      .limit(20);
+    briefArticles = (briefFallback ?? []).filter(a => !featuredArticles.find(f => f.id === a.id));
+  }
 
-  // Hero: 반드시 interview-news 우선
+  // Hero: interview-news 우선, 없으면 special-post, 없으면 아무거나
   const heroArticle =
     featuredArticles.find(a => a.category === 'interview-news') ??
     featuredArticles.find(a => a.category === 'special-post') ??
     featuredArticles[0] ??
     null;
 
-  // Grid 앞 2개: 반드시 interview-news (hero 제외)
+  // Grid 앞 2개: interview-news (hero 제외), 나머지로 채움
   const interviewArticles = featuredArticles
     .filter(a => a.category === 'interview-news' && a.id !== heroArticle?.id);
   const otherFeatured = featuredArticles
     .filter(a => a.category !== 'interview-news' && a.id !== heroArticle?.id);
 
-  // 앞 2개는 interview-news, 나머지는 other featured로 채움
   const gridArticles = [
     ...interviewArticles.slice(0, 2),
     ...otherFeatured,
