@@ -85,6 +85,13 @@ export default async function TagNav({ activeSlug }: TagNavProps) {
         🔍 검색
       </Link>
 
+      <Link
+        href="/charter"
+        className="whitespace-nowrap flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-medium bg-brand-primary/20 text-brand-primary hover:bg-brand-primary/30 transition-colors"
+      >
+        📜 헌장
+      </Link>
+
       {/* Premium tag — always pinned */}
       <Link
         href="/tag/premium"
