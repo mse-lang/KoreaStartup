@@ -1,11 +1,10 @@
 import Link from 'next/link';
+import { readCharterMarkdown } from '@/lib/charter';
 
-const items = [
-  ['2026-04-16', '헌장 전용 라우트 초기 생성'],
-  ['다음 단계', 'Google Docs 또는 MD 원본 동기화 연결'],
-];
+export default async function CharterHistoryPage() {
+  const md = await readCharterMarkdown('history.md');
+  const lines = md.split(/\r?\n/).filter(Boolean).filter(line => !line.startsWith('# '));
 
-export default function CharterHistoryPage() {
   return (
     <main className="min-h-screen px-4 sm:px-6 lg:px-8 py-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-4 mb-8">
@@ -15,10 +14,9 @@ export default function CharterHistoryPage() {
         </Link>
       </div>
       <div className="grid gap-3">
-        {items.map(([date, text]) => (
-          <div key={date} className="bento-card p-5 rounded-2xl border border-white/10 bg-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <strong>{date}</strong>
-            <span className="text-slate-300">{text}</span>
+        {lines.map((line) => (
+          <div key={line} className="bento-card p-5 rounded-2xl border border-white/10 bg-white/5">
+            <span className="text-slate-300">{line.replace(/^[-•]\s*/, '')}</span>
           </div>
         ))}
       </div>
